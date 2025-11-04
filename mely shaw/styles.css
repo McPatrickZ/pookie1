@@ -1,0 +1,101 @@
+/* ------------------------------------------- */
+/* ESTILOS BASE Y PANTALLA COMPLETA (PC) */
+/* ------------------------------------------- */
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Fuente más moderna */
+    display: flex;
+    justify-content: center; 
+    align-items: center; 
+    
+    min-height: 100vh; 
+    width: 100vw;
+    margin: 0;
+    padding: 20px;
+    background-color: #2c3e50; /* Fondo más oscuro para que los botones destaquen */
+    box-sizing: border-box; 
+    overflow: hidden; /* Evita barras de desplazamiento innecesarias */
+}
+
+.botones-contenedor {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 500px; /* Mantenemos el ancho para la disposición 2x3 */
+    gap: 20px; /* Más espacio entre botones para un look más limpio */
+    width: 100%; 
+    padding: 0;
+    background-color: transparent; 
+    box-shadow: none;
+}
+
+.boton-audio {
+    padding: 28px 15px; /* Más padding para botones más "grandes" */
+    font-size: 22px; /* Letra un poco más grande */
+    font-weight: bold;
+    color: #ffffff;
+    
+    /* CAMBIO CLAVE: Color rojo oscuro con gradiente para un look premium */
+    background: linear-gradient(145deg, #cc2e2e, #a02525); 
+    
+    border: none;
+    border-radius: 15px; /* Bordes más redondeados */
+    cursor: pointer;
+    
+    /* Sombras más pronunciadas y con efecto 3D */
+    box-shadow: 8px 8px 15px rgba(0, 0, 0, 0.4), /* Sombra principal */
+                -8px -8px 15px rgba(255, 255, 255, 0.1); /* Sombra "iluminada" sutil */
+    
+    transition: all 0.2s ease-in-out; /* Transiciones más suaves en todas las propiedades */
+    text-align: center;
+    letter-spacing: 0.8px; /* Espaciado entre letras para mejor lectura */
+    text-transform: uppercase; /* Nombres en mayúsculas */
+}
+
+/* Efectos al interactuar: ¡más dinámicos! */
+.boton-audio:hover {
+    background: linear-gradient(145deg, #e03f3f, #b32a2a); /* Gradiente más claro al pasar el ratón */
+    transform: translateY(-5px); /* Se levanta más al pasar el ratón */
+    box-shadow: 12px 12px 25px rgba(0, 0, 0, 0.5), /* Sombra más grande al pasar */
+                -12px -12px 25px rgba(255, 255, 255, 0.15); /* Efecto de luz más fuerte */
+}
+
+.boton-audio:active {
+    background: linear-gradient(145deg, #a02525, #cc2e2e); /* Vuelve al gradiente original pero con el orden inverso */
+    transform: translateY(0); /* Vuelve a su posición original */
+    box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.3), /* Sombra más pequeña al hacer clic (efecto "hundido") */
+                -4px -4px 10px rgba(255, 255, 255, 0.05); /* Luz sutil al hundirse */
+}
+
+/* ------------------------------------------- */
+/* ADAPTACIÓN MÓVIL (responsive) */
+/* ------------------------------------------- */
+
+@media (max-width: 600px) {
+    body {
+        padding: 10px; /* Menos padding en móvil */
+    }
+    .botones-contenedor {
+        grid-template-columns: 1fr; /* Una sola columna en móvil */
+        gap: 15px; /* Ajuste de espacio */
+        max-width: none;
+    }
+
+    .boton-audio {
+        padding: 22px 10px;
+        font-size: 18px;
+        border-radius: 12px;
+        box-shadow: 6px 6px 12px rgba(0, 0, 0, 0.4), 
+                    -6px -6px 12px rgba(255, 255, 255, 0.08);
+    }
+
+    .boton-audio:hover {
+        transform: translateY(-3px);
+        box-shadow: 8px 8px 18px rgba(0, 0, 0, 0.5),
+                    -8px -8px 18px rgba(255, 255, 255, 0.12);
+    }
+
+    .boton-audio:active {
+        box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.3),
+                    -3px -3px 8px rgba(255, 255, 255, 0.04);
+    }
+}

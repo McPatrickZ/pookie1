@@ -1,0 +1,144 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-image: url('minecraft-foto.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+
+/* SOBRE */
+#envelope {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background: rgba(0,0,0,0.7);
+    z-index:100;
+    cursor:pointer;
+    transition:.4s;
+}
+#envelope.hidden{opacity:0;pointer-events:none;}
+
+.envelope-content{
+    background:white;
+    padding:30px 40px;
+    border-radius:15px;
+    text-align:center;
+}
+.envelope-icon{font-size:4rem;}
+.click-message{font-size:1.3rem;}
+
+/* INVITACIÓN */
+.invitation-container {
+    width:90vw;
+    max-width:400px;
+    height:90vh;
+    background:rgba(60,0,0,.9);
+    border-radius:20px;
+    box-shadow:0 8px 20px rgba(0,0,0,.5);
+    padding:20px;
+    flex-direction:column;
+    display:flex;
+    align-items:center;
+    opacity:0;
+    transform:scale(.9);
+    transition:.4s;
+}
+.invitation-container.visible{
+    opacity:1;
+    transform:scale(1);
+}
+
+.question-box{
+    background:white;
+    color:#333;
+    padding:10px 25px;
+    border-radius:15px;
+    text-align:center;
+    font-size:1.2rem;
+}
+
+.penguins-container{
+    width:100%;
+    height:40vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+.penguin-single{
+    height:100%;
+    max-width:100%;
+    object-fit:contain;
+}
+
+/* BOTONES */
+.buttons-container{
+    display:flex;
+    gap:15px;
+    margin-top:15px;
+}
+.btn{
+    padding:12px 28px;
+    font-size:1.2rem;
+    border:none;
+    color:white;
+    border-radius:10px;
+}
+.yes-btn{background:#4CAF50;}
+.no-btn{background:#D32F2F;}
+
+/* GRACIAS */
+#thankYouCard{
+    width:90vw;
+    max-width:500px;
+    height:80vh;
+    position:fixed;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%) scale(.8);
+    background:rgba(60,0,0,.9);
+    border-radius:20px;
+    padding:20px;
+    opacity:0;
+    pointer-events:none;
+    transition:.4s;
+}
+#thankYouCard.visible{
+    opacity:1;
+    transform:translate(-50%,-50%) scale(1);
+}
+
+.thank-you-text-box{
+    background:white;
+    padding:12px;
+    text-align:center;
+    border-radius:10px;
+}
+.thank-you-heading{font-size:1.8rem;}
+
+.thank-you-image-wrapper{
+    margin-top:15px;
+    height:100%;
+    display:flex;
+    align-items:center;
+}
+.thank-you-photo{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+}
+
+/* MOBILE ULTRA PEQUEÑO */
+@media (max-width:380px){
+    .btn{padding:10px 20px;font-size:1rem;}
+    .thank-you-heading{font-size:1.5rem;}
+}

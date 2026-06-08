@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elige Dificultad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Press Start 2P', monospace;
+    overflow: hidden;
+    gap: 50px;
+    position: relative;
+  }
+  #title {
+    font-size: 42px;
+    text-align: center;
+    animation: zoomPulse 1.6s ease-in-out infinite;
+    letter-spacing: 3px;
+    user-select: none;
+  }
+  @keyframes zoomPulse {
+    0%   { transform: scale(0.85); }
+    50%  { transform: scale(1.08); }
+    100% { transform: scale(0.85); }
+  }
+  #buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 36px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .diff-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 22px;
+    padding: 22px 40px;
+    cursor: pointer;
+    border: 3px solid;
+    letter-spacing: 2px;
+    background: #000;
+    transition: transform 0.1s;
+  }
+  .diff-btn:active { transform: scale(0.95); }
+  #btn-facil  { color: #44ee66; border-color: #44ee66; }
+  #btn-facil:hover  { background: #44ee66; color: #000; }
+  #btn-medio  { color: #ffdd00; border-color: #ffdd00; }
+  #btn-medio:hover  { background: #ffdd00; color: #000; }
+  #btn-dificil { color: #ff4444; border-color: #ff4444; }
+  #btn-dificil:hover { background: #ff4444; color: #000; }
+
+  #btn-back {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    background: #000;
+    color: #fff;
+    border: 3px solid #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    padding: 12px 20px;
+    cursor: pointer;
+    z-index: 50;
+    transition: all 0.2s;
+  }
+  #btn-back:hover {
+    background: #fff;
+    color: #000;
+  }
+</style>
+</head>
+<body>
+
+<audio id="bgmusic" src="dificultad.mp3" loop></audio>
+
+<button id="btn-back">◀ VOLVER</button>
+
+<div id="title">ELIGE DIFICULTAD</div>
+
+<div id="buttons">
+  <button class="diff-btn" id="btn-facil">FÁCIL</button>
+  <button class="diff-btn" id="btn-medio">MEDIO</button>
+  <button class="diff-btn" id="btn-dificil">DIFÍCIL</button>
+</div>
+
+<div id="modal-facil" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; font-family: 'Press Start 2P', monospace; pointer-events: none; user-select: none;">
+  <p id="modal-text" style="color: white; font-size: 20px; text-align: center; margin-bottom: 40px; line-height: 1.5; pointer-events: none; max-width: 80%;"></p>
+  <div style="display: flex; gap: 20px; position: relative; z-index: 100000;">
+    <button id="btn-cerrar-cartel" style="background: transparent; color: #fff; border: 2px solid #fff; padding: 15px 30px; font-family: 'Press Start 2P', monospace; cursor: pointer; pointer-events: auto; position: relative; z-index: 100001;">VOLVER</button>
+  </div>
+</div>
+
+<div id="modal-medio" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; font-family: 'Press Start 2P', monospace; pointer-events: none; user-select: none;">
+  <p id="modal-text-medio" style="color: white; font-size: 20px; text-align: center; margin-bottom: 40px; line-height: 1.5; pointer-events: none; max-width: 80%;"></p>
+  <div style="display: flex; gap: 20px; position: relative; z-index: 100000;">
+    <button id="btn-cerrar-medio" style="background: transparent; color: #fff; border: 2px solid #fff; padding: 15px 30px; font-family: 'Press Start 2P', monospace; cursor: pointer; pointer-events: auto; position: relative; z-index: 100001;">VOLVER</button>
+  </div>
+</div>
+
+<script>
+  // Colores animados
+  const colors = ['#FF4444','#FF9900','#FFEE00','#44FF44','#44CCFF','#CC44FF','#FF44CC','#FF6644','#00FFAA','#FFFFFF'];
+  function colorize(el) {
+    const text = el.dataset.text || el.textContent;
+    el.dataset.text = text;
+    el.innerHTML = '';
+    for (let ch of text) {
+      if (ch === ' ') { el.appendChild(document.createTextNode(' ')); continue; }
+      const span = document.createElement('span');
+      span.textContent = ch;
+      span.style.color = colors[Math.floor(Math.random() * colors.length)];
+      el.appendChild(span);
+    }
+  }
+  const titleEl = document.getElementById('title');
+  titleEl.dataset.text = 'ELIGE DIFICULTAD';
+  colorize(titleEl);
+  setInterval(() => colorize(titleEl), 300);
+
+  // Música
+  const bgmusic = document.getElementById('bgmusic');
+  bgmusic.play().catch(() => {
+    document.addEventListener('click', () => bgmusic.play(), { once: true });
+  });
+
+  // Sonido click
+  function playClick(cb) {
+    const s = new Audio('click.mp3');
+    s.play().catch(() => {});
+    setTimeout(cb, 200);
+  }
+
+  // Volver a index
+  document.getElementById('btn-back').addEventListener('click', () => {
+    playClick(() => { window.location.href = 'index.html'; });
+  });
+
+  // Botón FÁCIL
+  document.getElementById('btn-facil').addEventListener('click', () => {
+    const modal = document.getElementById('modal-facil');
+    const text = document.getElementById('modal-text');
+    const s = new Audio('click.mp3');
+    s.play().catch(() => {});
+    
+    text.innerHTML = '¿En serio?<br>¿Estás escogiendo el modo FÁCIL?<br>¿Tan difícil es el juego?';
+    
+    modal.style.display = 'flex';
+    modal.style.pointerEvents = 'auto'; 
+  });
+
+  // Cerrar cartel FÁCIL
+  document.getElementById('btn-cerrar-cartel').addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const modal = document.getElementById('modal-facil');
+    modal.style.display = 'none';
+    modal.style.pointerEvents = 'none'; 
+  });
+
+  // Botón MEDIO (Modificado con cartel de troleo)
+  document.getElementById('btn-medio').addEventListener('click', () => {
+    const modal = document.getElementById('modal-medio');
+    const text = document.getElementById('modal-text-medio');
+    const s = new Audio('click.mp3');
+    s.play().catch(() => {});
+    
+    text.innerHTML = '¿En serio?<br>¿Crees que he creado este juego para jugar en MEDIO o FÁCIL?<br><br>¡Vamos a DIFÍCIL, anda!';
+    
+    modal.style.display = 'flex';
+    modal.style.pointerEvents = 'auto';
+  });
+
+  // Cerrar cartel MEDIO (NUEVO)
+  document.getElementById('btn-cerrar-medio').addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const modal = document.getElementById('modal-medio');
+    modal.style.display = 'none';
+    modal.style.pointerEvents = 'none'; 
+  });
+
+  // Botón DIFÍCIL
+  document.getElementById('btn-dificil').addEventListener('click', () => {
+    playClick(() => { window.location.href = 'dificil.html'; });
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Undyne The Undying</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; display:flex; align-items:center; justify-content:center; height:100vh; overflow:hidden; position:relative; }
+canvas { image-rendering: pixelated; display:block; width: min(95vw, calc(95vh * 1.3333)); height: auto; }
+#btn-back { position:absolute; top:24px; left:24px; background:#000; color:#fff; border:3px solid #fff; font-family:'Press Start 2P',monospace; font-size:11px; padding:12px 20px; cursor:pointer; z-index:50; transition:all 0.2s; }
+#btn-back:hover { background:#fff; color:#000; }
+</style>
+</head>
+<body>
+<button id="btn-back" onclick="goBack()">◀ VOLVER</button>
+<canvas id="c"></canvas>
+<script>
+function goBack() {
+  musica.pause();
+  const s=new Audio('click.mp3'); s.volume=0.6; s.play().catch(()=>{});
+  setTimeout(()=>{ window.location.href='dificil.html'; }, 150);
+}
+const C=document.getElementById('c');
+const ctx=C.getContext('2d');
+C.width=640; C.height=480;
+
+const musica=new Audio('audio_undyne.mp3');
+musica.loop=true; musica.volume=0.35;
+window.addEventListener('click',()=>musica.play().catch(()=>{}),{once:true});
+
+function ganarDinero(n){ let g=parseInt(localStorage.getItem('player_gold'))||0; localStorage.setItem('player_gold',g+n); }
+
+const sonidoLetras=new Audio('letras.mp3');
+sonidoLetras.volume=0.5;
+function font(s){ ctx.font=s+'px "Press Start 2P",monospace'; }
+const WHITE='#fff',BLACK='#000',YELLOW='#ffff00',RED='#ff0000',GRAY='#888',DKGRAY='#333',GREEN='#00ff00',CYAN='#00ffee',TEAL='#00ccaa',ORANGE='#ff8800';
+
+// ── UNDYNE SPRITE ──
+function drawUndyne(x,y,bobY,hit,phase,tick){
+  ctx.save(); ctx.translate(x,y+bobY);
+  if(hit) ctx.filter='brightness(12) saturate(0)';
+  const s=3.0; ctx.scale(s,s);
+  ctx.fillStyle='#cc1111';
+  ctx.beginPath(); ctx.moveTo(-18,30); ctx.lineTo(-22,80); ctx.lineTo(0,70); ctx.lineTo(22,80); ctx.lineTo(18,30); ctx.fill();
+  ctx.fillStyle='#991100'; ctx.fillRect(-22,55,8,25); ctx.fillRect(14,55,8,25);
+  ctx.fillStyle='#228855'; ctx.fillRect(-14,28,28,38);
+  ctx.fillStyle='#1a6644'; ctx.fillRect(-14,28,5,38); ctx.fillRect(9,28,5,38); ctx.fillRect(-9,28,18,6);
+  ctx.fillStyle='#44bb88'; ctx.fillRect(-11,31,4,14); ctx.fillRect(-6,31,3,10);
+  ctx.fillStyle='#00ffaa'; ctx.fillRect(-4,40,8,4); ctx.fillRect(-2,38,4,8);
+  ctx.fillStyle='#33aa66'; ctx.fillRect(-22,26,10,14); ctx.fillRect(12,26,10,14);
+  ctx.fillStyle='#1a6644'; ctx.fillRect(-22,26,10,3); ctx.fillRect(12,26,10,3);
+  ctx.fillStyle='#55cc88';
+  ctx.beginPath(); ctx.moveTo(-22,26); ctx.lineTo(-17,20); ctx.lineTo(-12,26); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(12,26); ctx.lineTo(17,20); ctx.lineTo(22,26); ctx.fill();
+  ctx.fillStyle='#33aa66'; ctx.fillRect(-26,38,6,20); ctx.fillRect(20,38,6,20);
+  ctx.fillStyle='#226644'; ctx.fillRect(-28,56,8,8); ctx.fillRect(20,56,8,8);
+  if(phase==='enemy'||phase==='menu'){
+    const lanceAngle=Math.sin(tick*0.08)*0.15-0.3;
+    ctx.save(); ctx.translate(24,40); ctx.rotate(lanceAngle);
+    ctx.fillStyle='#aaaaff'; ctx.fillRect(-2,-30,4,44);
+    ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.moveTo(0,-34); ctx.lineTo(-5,-24); ctx.lineTo(5,-24); ctx.fill();
+    ctx.fillStyle='#aaaaff'; ctx.beginPath(); ctx.moveTo(0,-30); ctx.lineTo(-3,-24); ctx.lineTo(3,-24); ctx.fill();
+    ctx.fillStyle='#eeeeff'; ctx.fillRect(-1,-34,2,6);
+    ctx.fillStyle='#8888cc'; ctx.beginPath(); ctx.moveTo(-2,14); ctx.lineTo(2,14); ctx.lineTo(0,18); ctx.fill();
+    ctx.restore();
+  }
+  ctx.fillStyle='#1d7a50'; ctx.fillRect(-12,64,24,18);
+  ctx.fillStyle='#155e3c'; for(let i=0;i<3;i++) ctx.fillRect(-10+i*8,64,4,18);
+  ctx.fillStyle='#228855'; ctx.fillRect(-10,80,8,10); ctx.fillRect(2,80,8,10);
+  ctx.fillStyle='#1a1a1a'; ctx.fillRect(-12,88,12,5); ctx.fillRect(0,88,12,5);
+  ctx.fillStyle='#44bbaa'; ctx.fillRect(-3,22,6,7);
+  ctx.fillStyle='#55ccbb'; ctx.fillRect(-12,2,24,22);
+  ctx.fillStyle='#ff3300';
+  ctx.beginPath(); ctx.moveTo(-12,4); ctx.lineTo(-16,-6); ctx.lineTo(-8,4); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-6,2); ctx.lineTo(-8,-10); ctx.lineTo(0,2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(2,2); ctx.lineTo(0,-12); ctx.lineTo(8,2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(8,4); ctx.lineTo(12,-6); ctx.lineTo(16,4); ctx.fill();
+  ctx.fillStyle='#ff6600';
+  ctx.beginPath(); ctx.moveTo(-4,2); ctx.lineTo(-5,-8); ctx.lineTo(2,2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(4,2); ctx.lineTo(6,-8); ctx.lineTo(12,2); ctx.fill();
+  ctx.fillStyle='#000'; ctx.fillRect(-9,8,7,7);
+  ctx.fillStyle='#00ffcc'; ctx.fillRect(-8,9,5,5);
+  ctx.fillStyle='#fff'; ctx.fillRect(-7,10,2,2);
+  ctx.fillStyle='#550000'; ctx.fillRect(2,7,9,9);
+  ctx.fillStyle='#ff0000'; ctx.fillRect(3,8,7,7);
+  if(Math.floor(tick/8)%2===0){
+    ctx.fillStyle='#ff8800'; ctx.fillRect(4,9,5,5);
+    ctx.fillStyle='#ffff00'; ctx.fillRect(5,10,3,3);
+    ctx.fillStyle='#fff'; ctx.fillRect(6,11,1,1);
+  } else { ctx.fillStyle='#ff4400'; ctx.fillRect(4,9,5,5); }
+  ctx.fillStyle='#2a8866'; ctx.fillRect(2,6,9,2);
+  ctx.fillStyle='#cc3300'; ctx.fillRect(1,6,1,10); ctx.fillRect(11,6,1,10);
+  ctx.fillStyle='#000'; ctx.fillRect(-6,18,12,3);
+  ctx.fillStyle='#fff'; ctx.fillRect(-5,18,3,2); ctx.fillRect(-1,18,3,2); ctx.fillRect(3,18,3,2);
+  ctx.fillStyle='rgba(0,200,150,0.25)'; ctx.fillRect(-11,10,3,5); ctx.fillRect(8,10,3,5);
+  ctx.restore();
+}
+
+// ── FONDO ──
+let bgTick=0;
+const stars=[];
+for(let i=0;i<60;i++) stars.push({x:Math.random()*640,y:Math.random()*200,r:Math.random()*1.5+0.5,s:Math.random()*0.5+0.3});
+const waterDrops=[];
+for(let i=0;i<25;i++) waterDrops.push({x:Math.random()*640,y:Math.random()*180,vy:0.6+Math.random()*0.8,alpha:0.15+Math.random()*0.3});
+function drawBackground(){
+  bgTick++;
+  ctx.fillStyle='#000811'; ctx.fillRect(0,0,640,480);
+  const bg=ctx.createLinearGradient(0,0,0,200);
+  bg.addColorStop(0,'#000811'); bg.addColorStop(0.4,'#001428'); bg.addColorStop(1,'#002233');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,640,200);
+  stars.forEach(st=>{ const p=0.5+0.5*Math.sin(bgTick*st.s+st.x); ctx.fillStyle=`rgba(0,255,200,${0.3*p+0.1})`; ctx.beginPath(); ctx.arc(st.x,st.y,st.r,0,Math.PI*2); ctx.fill(); });
+  waterDrops.forEach(d=>{ d.y+=d.vy; if(d.y>185) d.y=-10; ctx.fillStyle=`rgba(0,180,255,${d.alpha})`; ctx.fillRect(d.x,d.y,1.5,8); });
+  ctx.fillStyle='#0a1520'; ctx.fillRect(0,80,30,130); ctx.fillRect(610,80,30,130);
+  ctx.fillStyle='#0d1e2e'; for(let i=0;i<6;i++){ ctx.fillRect(i*5,90+i*4,6,110-i*4); ctx.fillRect(614+i*4,90+i*2,6,110-i*2); }
+  const fg=ctx.createLinearGradient(0,195,0,215);
+  fg.addColorStop(0,'#1a0800'); fg.addColorStop(0.5,'#2a1200'); fg.addColorStop(1,'#0a0300');
+  ctx.fillStyle=fg; ctx.fillRect(0,195,640,16);
+  ctx.strokeStyle='#ff4400'; ctx.lineWidth=1;
+  const lg=0.3+0.3*Math.sin(bgTick*0.05);
+  ctx.shadowColor='#ff4400'; ctx.shadowBlur=6*lg;
+  [[80,200,160,208],[200,196,280,205],[350,202,420,197],[500,198,560,206]].forEach(([x1,y1,x2,y2])=>{ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); });
+  ctx.shadowBlur=0;
+  const fog=ctx.createLinearGradient(0,160,0,212);
+  fog.addColorStop(0,'rgba(0,80,150,0)'); fog.addColorStop(0.5,'rgba(0,80,150,0.08)'); fog.addColorStop(1,'rgba(0,40,100,0.18)');
+  ctx.fillStyle=fog; ctx.fillRect(0,160,640,52);
+  const aura=ctx.createRadialGradient(320,140,20,320,140,120);
+  aura.addColorStop(0,'rgba(0,255,150,0.18)'); aura.addColorStop(0.5,'rgba(0,200,100,0.06)'); aura.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=aura; ctx.fillRect(0,0,640,210);
+  ctx.strokeStyle='#00ffaa'; ctx.lineWidth=1.5;
+  ctx.globalAlpha=0.35+0.15*Math.sin(bgTick*0.07);
+  ctx.beginPath(); ctx.moveTo(0,210); ctx.lineTo(640,210); ctx.stroke();
+  ctx.globalAlpha=1;
+}
+
+const BOX={x:160,y:215,w:320,h:130};
+function drawBox(){
+  ctx.fillStyle=BLACK; ctx.fillRect(BOX.x,BOX.y,BOX.w,BOX.h);
+  ctx.strokeStyle=WHITE; ctx.lineWidth=4; ctx.strokeRect(BOX.x,BOX.y,BOX.w,BOX.h);
+}
+
+let hx=BOX.x+BOX.w/2, hy=BOX.y+BOX.h/2;
+let heartColor=RED;
+let invincible=false, invTimer=0;
+let greenShieldActive=false, greenTimer=0;
+
+function drawHeart(){
+  if(invincible&&Math.floor(Date.now()/80)%2===0) return;
+  ctx.save();
+  ctx.fillStyle=heartColor;
+  if(greenShieldActive||arrowPhase||shieldPhase){ ctx.shadowColor='#00ff88'; ctx.shadowBlur=14; }
+  ctx.translate(hx,hy);
+  if(arrowPhase) ctx.rotate(heartAngle);
+  ctx.scale(0.7,0.7);
+  ctx.beginPath();
+  ctx.moveTo(0,6); ctx.bezierCurveTo(-10,-2,-18,-10,-10,-16);
+  ctx.bezierCurveTo(-4,-22,0,-16,0,-12); ctx.bezierCurveTo(0,-16,4,-22,10,-16);
+  ctx.bezierCurveTo(18,-10,10,-2,0,6); ctx.fill();
+  if(arrowPhase){
+    ctx.fillStyle='rgba(255,255,255,0.75)';
+    ctx.beginPath(); ctx.moveTo(0,-16); ctx.lineTo(-4,-10); ctx.lineTo(4,-10); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ════════════════════════════════════════════════
+//  PATRÓN 4 — ESCUDO CLÁSICO (el que pediste)
+//  Corazón verde. Flechas vienen de cualquier lado.
+//  PULSA la tecla de la dirección de donde VIENE la flecha para bloquearla.
+//  ↑ si viene de arriba, → si de derecha, ↓ si de abajo, ← si de izquierda.
+// ════════════════════════════════════════════════
+let shieldPhase=false;
+let shieldArrows=[];
+let shieldPhaseTimer=0;
+const SHIELD_PHASE_DURATION=1200;
+let shieldWarningActive=false;
+let shieldWarningDir=0;
+let shieldWarningTimer=0;
+const SHIELD_WARN_TICKS=65;
+let shieldSpeed=0.75;
+let shieldBlockedFlash=0;
+// dir 0=arriba, 1=derecha, 2=abajo, 3=izquierda
+// La flecha viene de esa dirección y avanza hacia el centro
+const SHIELD_DIR_VEC=[[0,1],[-1,0],[0,-1],[1,0]]; // vector de movimiento de la flecha
+const SHIELD_DIR_KEY=['ArrowUp','ArrowRight','ArrowDown','ArrowLeft']; // tecla para bloquear
+
+function spawnPattern4(){
+  clearPatterns();
+  shieldPhase=true;
+  shieldPhaseTimer=0;
+  shieldSpeed=0.75;
+  shieldArrows=[];
+  shieldWarningActive=false;
+  heartColor=GREEN;
+  hx=BOX.x+BOX.w/2; hy=BOX.y+BOX.h/2;
+  scheduleShieldArrow(80);
+}
+
+function scheduleShieldArrow(delay){
+  const id=setTimeout(()=>{
+    if(phase!=='enemy'||!shieldPhase) return;
+    const dir=Math.floor(Math.random()*4);
+    shieldWarningActive=true;
+    shieldWarningDir=dir;
+    shieldWarningTimer=SHIELD_WARN_TICKS;
+    const id2=setTimeout(()=>{
+      if(phase!=='enemy'||!shieldPhase) return;
+      shieldWarningActive=false;
+      fireShieldArrow(dir);
+    }, SHIELD_WARN_TICKS*(1000/60));
+    patternIntervals.push(id2);
+  }, delay);
+  patternIntervals.push(id);
+}
+
+function fireShieldArrow(dir){
+  const cx=BOX.x+BOX.w/2, cy=BOX.y+BOX.h/2;
+  const [dvx,dvy]=SHIELD_DIR_VEC[dir];
+  let ax,ay;
+  if(dir===0){ ax=cx; ay=BOX.y-45; }
+  else if(dir===1){ ax=BOX.x+BOX.w+45; ay=cy; }
+  else if(dir===2){ ax=cx; ay=BOX.y+BOX.h+45; }
+  else { ax=BOX.x-45; ay=cy; }
+  shieldArrows.push({x:ax,y:ay,vx:dvx,vy:dvy,dir,dead:false,blocked:false});
+}
+
+function updateShieldPhase(){
+  if(!shieldPhase) return;
+  shieldPhaseTimer++;
+  shieldSpeed=0.75+0.5*(shieldPhaseTimer/SHIELD_PHASE_DURATION);
+  if(shieldWarningTimer>0) shieldWarningTimer--;
+
+  shieldArrows.forEach(a=>{
+    if(a.dead) return;
+    a.x+=a.vx*shieldSpeed;
+    a.y+=a.vy*shieldSpeed;
+    const dx=a.x-hx, dy=a.y-hy;
+    if(Math.sqrt(dx*dx+dy*dy)<20&&!invincible){
+      const ok=keys[SHIELD_DIR_KEY[a.dir]];
+      if(ok){
+        a.blocked=true; a.dead=true;
+        greenShieldActive=true; greenTimer=35;
+        shieldBlockedFlash=28;
+      } else {
+        pHP=Math.max(0,pHP-7);
+        invincible=true; invTimer=55;
+        a.dead=true;
+      }
+      const gap=Math.max(700,1500-shieldPhaseTimer*0.6);
+      scheduleShieldArrow(gap);
+    }
+    if(!a.dead&&(a.x<BOX.x-80||a.x>BOX.x+BOX.w+80||a.y<BOX.y-80||a.y>BOX.y+BOX.h+80)){
+      a.dead=true;
+      const gap=Math.max(700,1400-shieldPhaseTimer*0.6);
+      scheduleShieldArrow(gap);
+    }
+  });
+  shieldArrows=shieldArrows.filter(a=>!a.dead);
+  if(invincible){invTimer--;if(invTimer<=0)invincible=false;}
+  if(greenShieldActive){greenTimer--;if(greenTimer<=0)greenShieldActive=false;}
+  if(shieldBlockedFlash>0) shieldBlockedFlash--;
+  if(pHP<=0){gameOver();return;}
+  if(shieldPhaseTimer>=SHIELD_PHASE_DURATION) endShieldPhase();
+}
+
+function endShieldPhase(){
+  shieldPhase=false;
+  shieldArrows=[];
+  shieldWarningActive=false;
+  heartColor=RED;
+}
+
+// Dibuja una flecha de escudo (más grande, muy legible)
+function drawShieldArrow(a){
+  if(a.dead) return;
+  ctx.save();
+  ctx.translate(a.x,a.y);
+  const angMap=[Math.PI/2, Math.PI, -Math.PI/2, 0];
+  ctx.rotate(angMap[a.dir]);
+  ctx.shadowColor='#00ff88'; ctx.shadowBlur=18;
+  ctx.fillStyle='#00ff88';
+  ctx.fillRect(-6,-22,12,36);
+  ctx.beginPath(); ctx.moveTo(0,-38); ctx.lineTo(-14,-22); ctx.lineTo(14,-22); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  ctx.fillRect(-4,-22,4,36);
+  ctx.restore();
+}
+
+// UI del patrón escudo: indicadores de teclas + aviso + flash de bloqueo
+function drawShieldUI(){
+  if(!shieldPhase) return;
+  // Instrucción
+  ctx.save();
+  ctx.fillStyle='rgba(0,255,136,0.9)'; font(7); ctx.textBaseline='top';
+  ctx.fillText('Pulsa la tecla de donde viene la flecha para bloquear',BOX.x+2,BOX.y+BOX.h+5);
+
+  // Indicadores de teclas en cada lado del box
+  const ind=[
+    {x:BOX.x+BOX.w/2, y:BOX.y-22, lbl:'↑', k:'ArrowUp'},
+    {x:BOX.x+BOX.w+22, y:BOX.y+BOX.h/2, lbl:'→', k:'ArrowRight'},
+    {x:BOX.x+BOX.w/2, y:BOX.y+BOX.h+22, lbl:'↓', k:'ArrowDown'},
+    {x:BOX.x-22, y:BOX.y+BOX.h/2, lbl:'←', k:'ArrowLeft'},
+  ];
+  ind.forEach(d=>{
+    const pressed=keys[d.k];
+    ctx.textAlign='center'; ctx.textBaseline='middle'; font(12);
+    ctx.shadowColor=pressed?'#ffffff':'#00ff88';
+    ctx.shadowBlur=pressed?20:6;
+    ctx.fillStyle=pressed?'#ffffff':'rgba(0,255,136,0.5)';
+    ctx.fillText(d.lbl, d.x, d.y);
+  });
+  ctx.shadowBlur=0;
+
+  // Aviso parpadeante (de qué lado viene)
+  if(shieldWarningActive){
+    const blink=Math.floor(shieldWarningTimer/5)%2===0;
+    if(blink){
+      const wl=[
+        {x:BOX.x+BOX.w/2, y:BOX.y-42, t:'▼ ↑'},
+        {x:BOX.x+BOX.w+10, y:BOX.y+BOX.h/2, t:'◄ →'},
+        {x:BOX.x+BOX.w/2, y:BOX.y+BOX.h+42, t:'▲ ↓'},
+        {x:BOX.x-10, y:BOX.y+BOX.h/2, t:'► ←'},
+      ];
+      const w=wl[shieldWarningDir];
+      ctx.fillStyle='#ffff00'; ctx.shadowColor='#ffff00'; ctx.shadowBlur=12;
+      font(8); ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(w.t, w.x, w.y);
+    }
+  }
+  ctx.textAlign='left'; ctx.shadowBlur=0;
+
+  // Flash de bloqueo exitoso
+  if(shieldBlockedFlash>0){
+    const al=shieldBlockedFlash/28;
+    ctx.fillStyle=`rgba(0,255,136,${al*0.25})`; ctx.fillRect(BOX.x,BOX.y,BOX.w,BOX.h);
+    ctx.textAlign='center'; ctx.textBaseline='middle'; font(13);
+    ctx.shadowColor='#00ff88'; ctx.shadowBlur=22;
+    ctx.fillStyle=`rgba(255,255,255,${al})`;
+    ctx.fillText('¡BLOQUEADO!', BOX.x+BOX.w/2, BOX.y+BOX.h/2);
+    ctx.textAlign='left'; ctx.shadowBlur=0;
+  }
+  ctx.restore();
+}
+
+// ── DIALOGUE ──
+let dlgText='',dlgFull='',dlgTimer=0,dlgDone=false,dlgCB=null;
+function startDialogue(text,cb){ dlgFull=text; dlgText=''; dlgTimer=0; dlgDone=false; dlgCB=cb; phase='dialogue'; }
+function updateDialogue(){
+  if(dlgDone) return;
+  dlgTimer++;
+  if(dlgTimer%3===0&&dlgText.length<dlgFull.length){
+    dlgText+=dlgFull[dlgText.length];
+    if(dlgText.length===dlgFull.length){
+      dlgDone=true;
+      const c=sonidoLetras.cloneNode(); c.volume=0.5; c.play().catch(()=>{});
+      if(dlgCB) setTimeout(dlgCB,1600);
+    }
+  }
+}
+function drawDialogue(){
+  ctx.fillStyle=BLACK; ctx.fillRect(40,348,560,72);
+  ctx.strokeStyle=WHITE; ctx.lineWidth=4; ctx.strokeRect(40,348,560,72);
+  ctx.fillStyle=WHITE; font(9); ctx.textBaseline='top';
+  dlgText.split('\n').forEach((l,i)=>ctx.fillText(l,56,360+i*22));
+}
+
+// ── HP BARS ──
+const PMAX=80, BMAX=100;
+let pHP=PMAX, bHP=BMAX;
+function drawHPArea(){
+  ctx.fillStyle=WHITE; font(9); ctx.textBaseline='middle'; ctx.fillText('❤ Mely  LV 1',42,432);
+  ctx.fillStyle=YELLOW; ctx.fillText('HP',280,432);
+  const bx=305,by=425,bw=200,bh=14;
+  ctx.fillStyle=BLACK; ctx.fillRect(bx,by,bw,bh);
+  ctx.strokeStyle=WHITE; ctx.lineWidth=2; ctx.strokeRect(bx,by,bw,bh);
+  const ratio=Math.max(0,pHP/PMAX);
+  ctx.fillStyle=ratio>0.5?YELLOW:ratio>0.25?ORANGE:RED;
+  ctx.fillRect(bx+1,by+1,(bw-2)*ratio,bh-2);
+  ctx.fillStyle=YELLOW; font(9); ctx.fillText(Math.max(0,pHP)+' / '+PMAX,514,432);
+}
+function drawEnemyHP(){
+  ctx.fillStyle=WHITE; font(8); ctx.textBaseline='middle'; ctx.fillText('UNDYNE',42,18);
+  const bx=170,by=11,bw=280,bh=14;
+  ctx.fillStyle=BLACK; ctx.fillRect(bx,by,bw,bh);
+  ctx.strokeStyle=CYAN; ctx.lineWidth=2; ctx.strokeRect(bx,by,bw,bh);
+  ctx.fillStyle=TEAL; ctx.fillRect(bx+1,by+1,(bw-2)*Math.max(0,bHP/BMAX),bh-2);
+  ctx.fillStyle=WHITE; font(8); ctx.fillText(Math.max(0,bHP)+' / '+BMAX,460,18);
+}
+
+// ── MENU ──
+let menuEnabled=false, mx=0, my=0;
+const btns=[{x:42,y:448,w:170,h:26,label:'⚔ FIGHT'},{x:232,y:448,w:170,h:26,label:'🎒 ITEM'},{x:422,y:448,w:176,h:26,label:'♡ RENDIDOR'}];
+function drawMenu(){
+  btns.forEach(b=>{
+    const hover=(mx>=b.x&&mx<=b.x+b.w&&my>=b.y&&my<=b.y+b.h&&menuEnabled);
+    ctx.fillStyle=hover?WHITE:BLACK; ctx.strokeStyle=menuEnabled?WHITE:DKGRAY; ctx.lineWidth=2.5;
+    ctx.fillRect(b.x,b.y,b.w,b.h); ctx.strokeRect(b.x,b.y,b.w,b.h);
+    ctx.fillStyle=hover?BLACK:(menuEnabled?WHITE:DKGRAY); font(9); ctx.textBaseline='middle';
+    ctx.fillText(b.label,b.x+12,b.y+13);
+  });
+}
+C.addEventListener('mousemove',e=>{ const r=C.getBoundingClientRect(); mx=(e.clientX-r.left)*(C.width/r.width); my=(e.clientY-r.top)*(C.height/r.height); });
+C.addEventListener('click',e=>{
+  const r=C.getBoundingClientRect();
+  const cx=(e.clientX-r.left)*(C.width/r.width), cy=(e.clientY-r.top)*(C.height/r.height);
+  if(!menuEnabled) return;
+  if(cx>=btns[0].x&&cx<=btns[0].x+btns[0].w&&cy>=448&&cy<=474) openFight();
+  if(cx>=btns[1].x&&cx<=btns[1].x+btns[1].w&&cy>=448&&cy<=474) openItem();
+  if(cx>=btns[2].x&&cx<=btns[2].x+btns[2].w&&cy>=448&&cy<=474) doSurrender();
+});
+
+// ── LANZAS (velocidades reducidas ~40%) ──
+let spears=[], patternIntervals=[];
+const SPR_LEN=38, SPR_W=7;
+function drawSpear(s){
+  ctx.save(); ctx.translate(s.x,s.y); ctx.rotate(s.angle+Math.PI/2);
+  ctx.fillStyle=s.green?'#00ff88':'#aaaaff'; ctx.fillRect(-SPR_W/2,-SPR_LEN/2,SPR_W,SPR_LEN);
+  ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.moveTo(0,-SPR_LEN/2-14); ctx.lineTo(-SPR_W/2-2,-SPR_LEN/2); ctx.lineTo(SPR_W/2+2,-SPR_LEN/2); ctx.fill();
+  ctx.fillStyle=s.green?'rgba(0,255,180,0.5)':'rgba(180,180,255,0.5)'; ctx.fillRect(-SPR_W/2+1,-SPR_LEN/2,-1,SPR_LEN);
+  ctx.shadowColor=s.green?'#00ff88':'#aaaaff'; ctx.shadowBlur=10;
+  ctx.strokeStyle=s.green?'#00ffbb':'#ccccff'; ctx.lineWidth=1; ctx.strokeRect(-SPR_W/2,-SPR_LEN/2,SPR_W,SPR_LEN);
+  ctx.restore();
+}
+function drawSpears(){ spears.forEach(s=>{ if(!s.visible) return; drawSpear(s); }); }
+
+function clearPatterns(){
+  patternIntervals.forEach(id=>{ clearInterval(id); clearTimeout(id); });
+  patternIntervals=[]; spears=[];
+  arrowPhase=false; arrowActive=null; arrowWarningActive=false;
+  shieldPhase=false; shieldArrows=[]; shieldWarningActive=false;
+  heartColor=RED; heartAngle=0;
+  smallBox={x:BOX.x,y:BOX.y,w:BOX.w,h:BOX.h};
+}
+
+// Patrón 0 — velocidad 1.5 (era 2.5)
+function spawnPattern0(){
+  clearPatterns();
+  let col=0;
+  const sides=['left','right','top','bottom'];
+  const side=sides[Math.floor(Math.random()*4)];
+  const numLines=6;
+  const launch=()=>{
+    if(phase!=='enemy') return;
+    const lineIdx=col%numLines;
+    const green=lineIdx===Math.floor(Math.random()*numLines);
+    let sx,sy,angle;
+    if(side==='left'||side==='right'){ sx=side==='left'?BOX.x-40:BOX.x+BOX.w+40; sy=BOX.y+20+(lineIdx*(BOX.h-40)/(numLines-1)); angle=side==='left'?0:Math.PI; }
+    else { sy=side==='top'?BOX.y-40:BOX.y+BOX.h+40; sx=BOX.x+20+(lineIdx*(BOX.w-40)/(numLines-1)); angle=side==='top'?Math.PI/2:-(Math.PI/2); }
+    const spear={x:sx,y:sy,vx:0,vy:0,angle,green,visible:true,speed:0,fired:false,dead:false};
+    spears.push(spear);
+    setTimeout(()=>{ if(phase!=='enemy') return; spear.speed=1.5; spear.vx=Math.cos(angle)*1.5; spear.vy=Math.sin(angle)*1.5; spear.fired=true; },500);
+    col++;
+  };
+  launch();
+  const iv=setInterval(()=>{ if(phase!=='enemy'){clearInterval(iv);return;} launch(); },420);
+  patternIntervals.push(iv);
+}
+
+// Patrón 1 — velocidad 1.1 (era 1.8)
+function spawnPattern1(){
+  clearPatterns();
+  const launchWave=()=>{
+    if(phase!=='enemy') return;
+    const gi=Math.floor(Math.random()*5);
+    for(let i=0;i<5;i++) spears.push({x:BOX.x+40+(i*(BOX.w-80)/4),y:BOX.y-50,vx:0,vy:1.1,angle:0,green:(i===gi),visible:true,speed:1.1,fired:true,dead:false});
+  };
+  launchWave();
+  const iv=setInterval(()=>{ if(phase!=='enemy'){clearInterval(iv);return;} launchWave(); },2400);
+  patternIntervals.push(iv);
+}
+
+// Patrón 2 — velocidad 1.2 (era 2.0)
+function spawnPattern2(){
+  clearPatterns();
+  let n=0;
+  const launchRing=()=>{
+    if(phase!=='enemy') return;
+    const cnt=8, gi=Math.floor(Math.random()*cnt);
+    const cx=BOX.x+BOX.w/2, cy=BOX.y+BOX.h/2;
+    for(let i=0;i<cnt;i++){
+      const angle=(Math.PI*2/cnt)*i+n*0.3;
+      const sx=cx+Math.cos(angle)*180, sy=cy+Math.sin(angle)*180;
+      const tx=hx-sx, ty=hy-sy, len=Math.sqrt(tx*tx+ty*ty)||1;
+      spears.push({x:sx,y:sy,vx:(tx/len)*1.2,vy:(ty/len)*1.2,angle:Math.atan2(ty,tx)-Math.PI/2,green:(i===gi),visible:true,speed:1.2,fired:true,dead:false});
+    }
+    n++;
+  };
+  setTimeout(()=>{ if(phase==='enemy') launchRing(); const iv=setInterval(()=>{ if(phase!=='enemy'){clearInterval(iv);return;} launchRing(); },2800); patternIntervals.push(iv); },600);
+}
+
+function updateSpears(){
+  spears.forEach(s=>{
+    if(!s.fired||s.dead) return;
+    s.x+=s.vx; s.y+=s.vy;
+    if(s.x<BOX.x-80||s.x>BOX.x+BOX.w+80||s.y<BOX.y-80||s.y>BOX.y+BOX.h+80) s.dead=true;
+    if(!invincible){ const dx=s.x-hx,dy=s.y-hy; if(Math.sqrt(dx*dx+dy*dy)<16){ if(s.green){greenShieldActive=true;greenTimer=40;heartColor=GREEN;s.dead=true;}else{pHP=Math.max(0,pHP-8);invincible=true;invTimer=55;} } }
+  });
+  if(invincible){invTimer--;if(invTimer<=0)invincible=false;}
+  if(greenShieldActive){greenTimer--;if(greenTimer<=0){greenShieldActive=false;heartColor=RED;}}
+  spears=spears.filter(s=>!s.dead);
+}
+
+// ── PATRÓN 3 (flechas caja pequeña + giro corazón) — velocidad reducida ──
+let arrowPhase=false;
+let smallBox={x:0,y:0,w:0,h:0}, smallBoxTarget={x:0,y:0,w:0,h:0};
+const SBOX_W=110, SBOX_H=110;
+let heartAngle=0, arrowActive=null, arrowPhaseTimer=0;
+const ARROW_PHASE_DURATION=1500;
+let arrowSpeed=0.7, arrowWarningActive=false, arrowWarningDir=0, arrowWarningTimer=0;
+const WARN_TICKS=55;
+const DIR_ENTRY=[[0,1],[-1,0],[0,-1],[1,0]];
+const DIR_BLOCK_ANGLE=[-Math.PI/2,Math.PI,Math.PI/2,0];
+
+function spawnPattern3(){
+  clearPatterns();
+  arrowPhase=true; arrowPhaseTimer=0; arrowSpeed=0.7; arrowActive=null; arrowWarningActive=false;
+  heartAngle=0; heartColor=GREEN;
+  smallBoxTarget={x:BOX.x+BOX.w/2-SBOX_W/2,y:BOX.y+BOX.h/2-SBOX_H/2,w:SBOX_W,h:SBOX_H};
+  smallBox={x:BOX.x,y:BOX.y,w:BOX.w,h:BOX.h};
+  hx=BOX.x+BOX.w/2; hy=BOX.y+BOX.h/2;
+  scheduleNextArrow(80);
+}
+function scheduleNextArrow(delay){
+  const iv=setTimeout(()=>{
+    if(phase!=='enemy'||!arrowPhase) return;
+    const dir=Math.floor(Math.random()*4); arrowWarningActive=true; arrowWarningDir=dir; arrowWarningTimer=WARN_TICKS;
+    const iv2=setTimeout(()=>{ if(phase!=='enemy'||!arrowPhase) return; arrowWarningActive=false; fireArrow(dir); },WARN_TICKS*(1000/60));
+    patternIntervals.push(iv2);
+  },delay);
+  patternIntervals.push(iv);
+}
+function fireArrow(dir){
+  const cx=smallBox.x+smallBox.w/2, cy=smallBox.y+smallBox.h/2;
+  const [dvx,dvy]=DIR_ENTRY[dir];
+  let ax,ay;
+  if(dir===0){ax=cx;ay=smallBox.y-30;} else if(dir===1){ax=smallBox.x+smallBox.w+30;ay=cy;} else if(dir===2){ax=cx;ay=smallBox.y+smallBox.h+30;} else {ax=smallBox.x-30;ay=cy;}
+  arrowActive={x:ax,y:ay,vx:dvx*arrowSpeed,vy:dvy*arrowSpeed,dir,blocked:false,dead:false,alpha:1};
+}
+function updateArrowPhase(){
+  if(!arrowPhase) return;
+  arrowPhaseTimer++;
+  const lerpF=0.08;
+  smallBox.x+=(smallBoxTarget.x-smallBox.x)*lerpF; smallBox.y+=(smallBoxTarget.y-smallBox.y)*lerpF;
+  smallBox.w+=(smallBoxTarget.w-smallBox.w)*lerpF; smallBox.h+=(smallBoxTarget.h-smallBox.h)*lerpF;
+  hx=Math.max(smallBox.x+12,Math.min(smallBox.x+smallBox.w-12,hx));
+  hy=Math.max(smallBox.y+12,Math.min(smallBox.y+smallBox.h-12,hy));
+  if(keys['z']||keys['Z']||keys['ArrowLeft']) heartAngle-=0.10;
+  if(keys['x']||keys['X']||keys['ArrowRight']) heartAngle+=0.10;
+  const spd=1.3;
+  if(keys['ArrowUp']) hy=Math.max(smallBox.y+12,hy-spd);
+  if(keys['ArrowDown']) hy=Math.min(smallBox.y+smallBox.h-12,hy+spd);
+  if(arrowWarningTimer>0) arrowWarningTimer--;
+  arrowSpeed=0.7+1.0*(arrowPhaseTimer/ARROW_PHASE_DURATION);
+  if(arrowActive&&!arrowActive.dead){
+    arrowActive.x+=arrowActive.vx*arrowSpeed; arrowActive.y+=arrowActive.vy*arrowSpeed;
+    const dx=arrowActive.x-hx,dy=arrowActive.y-hy,dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist<18&&!invincible){
+      const ea=DIR_BLOCK_ANGLE[arrowActive.dir]; let diff=heartAngle-ea;
+      while(diff>Math.PI) diff-=Math.PI*2; while(diff<-Math.PI) diff+=Math.PI*2;
+      if(Math.abs(diff)<0.55){ arrowActive.blocked=true; arrowActive.dead=true; greenShieldActive=true; greenTimer=30; }
+      else { pHP=Math.max(0,pHP-7); invincible=true; invTimer=50; arrowActive.dead=true; }
+      scheduleNextArrow(Math.max(40,110-Math.floor(arrowPhaseTimer/10))*16); arrowActive=null;
+    }
+    if(arrowActive&&(arrowActive.x<smallBox.x-50||arrowActive.x>smallBox.x+smallBox.w+50||arrowActive.y<smallBox.y-50||arrowActive.y>smallBox.y+smallBox.h+50)){
+      arrowActive.dead=true; arrowActive=null; scheduleNextArrow(Math.max(40,100-Math.floor(arrowPhaseTimer/10))*16);
+    }
+  }
+  if(invincible){invTimer--;if(invTimer<=0)invincible=false;}
+  if(greenShieldActive){greenTimer--;if(greenTimer<=0)greenShieldActive=false;}
+  if(pHP<=0){gameOver();return;}
+  if(arrowPhaseTimer>=ARROW_PHASE_DURATION) endArrowPhase();
+}
+function endArrowPhase(){ arrowPhase=false; arrowActive=null; arrowWarningActive=false; heartColor=RED; heartAngle=0; smallBox={x:BOX.x,y:BOX.y,w:BOX.w,h:BOX.h}; }
+function drawArrow(a){
+  if(!a||a.dead) return;
+  ctx.save(); ctx.translate(a.x,a.y);
+  ctx.rotate([Math.PI/2,Math.PI,-Math.PI/2,0][a.dir]);
+  ctx.shadowColor='#00ffaa'; ctx.shadowBlur=14; ctx.fillStyle='#00ff88';
+  ctx.fillRect(-5,-20,10,32); ctx.beginPath(); ctx.moveTo(0,-34); ctx.lineTo(-13,-20); ctx.lineTo(13,-20); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.fillRect(-3,-20,3,32);
+  ctx.restore();
+}
+function drawSmallBox(){
+  ctx.fillStyle=BLACK; ctx.fillRect(smallBox.x,smallBox.y,smallBox.w,smallBox.h);
+  ctx.strokeStyle='#00ff88'; ctx.lineWidth=3; ctx.shadowColor='#00ff88'; ctx.shadowBlur=8;
+  ctx.strokeRect(smallBox.x,smallBox.y,smallBox.w,smallBox.h); ctx.shadowBlur=0;
+}
+function drawArrowWarning(){
+  if(!arrowWarningActive) return;
+  const cx=smallBox.x+smallBox.w/2, cy=smallBox.y+smallBox.h/2;
+  if(!Math.floor(arrowWarningTimer/5)%2===0) return;
+  ctx.save(); ctx.fillStyle='#ffff00'; ctx.shadowColor='#ffff00'; ctx.shadowBlur=10;
+  font(8); ctx.textBaseline='middle'; ctx.textAlign='center';
+  const dirs=[{x:cx,y:smallBox.y-16,txt:'▼'},{x:smallBox.x+smallBox.w+16,y:cy,txt:'◄'},{x:cx,y:smallBox.y+smallBox.h+16,txt:'▲'},{x:smallBox.x-16,y:cy,txt:'►'}];
+  const d=dirs[arrowWarningDir]; ctx.fillText(d.txt,d.x,d.y);
+  ctx.textAlign='left'; ctx.shadowBlur=0; ctx.restore();
+}
+function drawHeartAngleHint(){
+  if(!arrowPhase) return;
+  ctx.save(); ctx.translate(smallBox.x+smallBox.w-16,smallBox.y+16);
+  ctx.strokeStyle='rgba(0,255,136,0.5)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.stroke();
+  ctx.strokeStyle='#00ff88'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(heartAngle)*10,Math.sin(heartAngle)*10); ctx.stroke();
+  ctx.restore();
+}
+
+// ── FIGHT BAR ──
+let fightOpen=false,fCursorX=0,fCursorDir=1,fZoneL=0,fZoneW=0;
+function drawFightBar(){
+  if(!fightOpen) return;
+  ctx.fillStyle=BLACK; ctx.fillRect(BOX.x,BOX.y,BOX.w,BOX.h);
+  font(10); ctx.fillStyle=WHITE; ctx.textBaseline='middle'; ctx.fillText('¡PULSA ESPACIO!',BOX.x+BOX.w/2-75,BOX.y+40);
+  const tx=BOX.x+20,ty=BOX.y+65,tw=BOX.w-40,th=22;
+  ctx.fillStyle='#222'; ctx.fillRect(tx,ty,tw,th); ctx.strokeStyle=WHITE; ctx.lineWidth=2; ctx.strokeRect(tx,ty,tw,th);
+  ctx.fillStyle='#00ff8833'; ctx.fillRect(tx+fZoneL,ty,fZoneW,th);
+  ctx.strokeStyle=CYAN; ctx.lineWidth=1.5; ctx.strokeRect(tx+fZoneL,ty,fZoneW,th);
+  ctx.fillStyle=CYAN; ctx.fillRect(tx+fCursorX,ty,14,th);
+}
+
+// ── ITEM ──
+let subOpen=false,subItems=[],subCB=null;
+let inventory=[{label:'Pastel de Ruinas  +20HP',hp:20},{label:'Spider Donut     +12HP',hp:12}];
+C.addEventListener('click',e=>{
+  if(!subOpen) return;
+  const r=C.getBoundingClientRect();
+  const cx=(e.clientX-r.left)*(C.width/r.width), cy=(e.clientY-r.top)*(C.height/r.height);
+  if(cx>=BOX.x+BOX.w/2-50&&cx<=BOX.x+BOX.w/2+50&&cy>=BOX.y+BOX.h-28&&cy<=BOX.y+BOX.h-8){subOpen=false;return;}
+  subItems.forEach((it,i)=>{ const iy=BOX.y+28+i*30; if(cy>=iy&&cy<=iy+24&&cx>=BOX.x+20&&cx<=BOX.x+BOX.w-20){subOpen=false;if(subCB)subCB(it);} });
+});
+function drawSubMenu(){
+  if(!subOpen) return;
+  ctx.fillStyle=BLACK; ctx.fillRect(BOX.x,BOX.y,BOX.w,BOX.h);
+  ctx.fillStyle=WHITE; font(10); ctx.textBaseline='top'; ctx.fillText('— ITEM —',BOX.x+20,BOX.y+8);
+  if(subItems.length===0){ctx.fillStyle=GRAY;font(9);ctx.textBaseline='middle';ctx.fillText('Sin objetos...',BOX.x+30,BOX.y+55);}
+  subItems.forEach((it,i)=>{
+    const iy=BOX.y+28+i*30, hover=(mx>=BOX.x+20&&mx<=BOX.x+BOX.w-20&&my>=iy&&my<=iy+24);
+    ctx.fillStyle=hover?'#333':'#111'; ctx.fillRect(BOX.x+20,iy,BOX.w-40,24);
+    ctx.strokeStyle=hover?WHITE:'#444'; ctx.lineWidth=1.5; ctx.strokeRect(BOX.x+20,iy,BOX.w-40,24);
+    ctx.fillStyle=WHITE; font(9); ctx.textBaseline='middle'; ctx.fillText(it.label,BOX.x+30,iy+12);
+  });
+  const vy=BOX.y+BOX.h-28;
+  ctx.fillStyle='#111'; ctx.fillRect(BOX.x+BOX.w/2-50,vy,100,20);
+  ctx.strokeStyle=GRAY; ctx.lineWidth=1; ctx.strokeRect(BOX.x+BOX.w/2-50,vy,100,20);
+  ctx.fillStyle=GRAY; font(8); ctx.textBaseline='middle'; ctx.fillText('◄ VOLVER',BOX.x+BOX.w/2-32,vy+10);
+}
+
+// ── GAME STATE ──
+let phase='dialogue', enemyTicks=0, enemyDuration=900;
+let bobY=0, bobDir=1, bobT=0, hitFlash=0, tick=0, battleMsgIdx=0;
+const INTRO=['* Undyne bloquea el camino!\n* Su único ojo brillante te fulm.','* "¡UN HUMANO! ¡AL FIN!"\n* "¡Coge esta alma para el rey!"','* Undyne alza su lanza.\n* El suelo tiembla bajo sus pies.','* UNDYNE THE UNDYING ha aparecido!\n* "¡No escaparás!"'];
+const BATTLE_MSG=['* "¡DETERMINACIÓN! ¡Eso es todo\n   lo que tienes contra mí!"','* Undyne no muestra señal\n   de cansancio.','* "¡NUNCA me rendiré!"\n* Su ojo arde con más fuerza.','* "¡Esto no es nada!\n   ¡Puedo hacer más!"','* Undyne lanza una carcajada\n   de batalla.','* "¡Con cada golpe me hago\n   más fuerte!"'];
+let introIdx=0;
+
+const keys={};
+document.addEventListener('keydown',e=>{
+  keys[e.key]=true;
+  if([' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+  if(e.key===' '&&fightOpen){
+    fightOpen=false;
+    const hit=fCursorX>=fZoneL&&fCursorX<=fZoneL+fZoneW;
+    const dmg=hit?(14+Math.floor(Math.random()*10)):(1+Math.floor(Math.random()*3));
+    bHP=Math.max(0,bHP-dmg); hitFlash=22;
+    const msg=hit?`¡CRÍTICO! -${dmg} HP`:`Falló casi... -${dmg} HP`;
+    setTimeout(()=>{ if(bHP<=0){victory();return;} startEnemy(); },600);
+    dlgText='* '+msg; dlgFull='* '+msg; dlgDone=true;
+  }
+});
+document.addEventListener('keyup',e=>delete keys[e.key]);
+
+function openFight(){ if(!menuEnabled) return; menuEnabled=false; fightOpen=true; fCursorX=0; fCursorDir=1; fZoneW=68; fZoneL=20+Math.random()*(BOX.w-40-fZoneW-20); }
+function openItem(){
+  if(!menuEnabled) return;
+  menuEnabled=false; subOpen=true; subItems=[...inventory];
+  subCB=(it)=>{ inventory=inventory.filter(i=>i!==it); pHP=Math.min(PMAX,pHP+it.hp); const msg=`* Usaste ${it.label.split(' ')[0]}.\n  HP +${it.hp}`; dlgText=msg; dlgFull=msg; dlgDone=true; phase='dialogue'; setTimeout(()=>startEnemy(),1800); };
+}
+function doSurrender(){ if(!menuEnabled) return; menuEnabled=false; location.reload(); }
+
+function startEnemy(){
+  phase='enemy'; menuEnabled=false; arrowPhase=false; heartAngle=0; heartColor=RED;
+  // Distribución: 25% escudo clásico, 15% giro corazón, 60% lanzas
+  const roll=Math.random();
+  let pat;
+  if(roll<0.25) pat=4;       // escudo clásico (nuevo)
+  else if(roll<0.40) pat=3;  // giro corazón
+  else pat=Math.floor(Math.random()*3); // lanzas 0/1/2
+  enemyTicks=0;
+  hx=BOX.x+BOX.w/2; hy=BOX.y+BOX.h/2;
+  if(pat===0) spawnPattern0();
+  else if(pat===1) spawnPattern1();
+  else if(pat===2) spawnPattern2();
+  else if(pat===3) spawnPattern3();
+  else spawnPattern4();
+}
+
+function nextIntro(){
+  if(introIdx<INTRO.length) startDialogue(INTRO[introIdx++],nextIntro);
+  else { phase='menu'; menuEnabled=true; dlgText='* ¿Qué harás?'; dlgFull='* ¿Qué harás?'; dlgDone=true; }
+}
+nextIntro();
+
+// ── VICTORY / GAME OVER ──
+let endPhase='',endMsg='',endSub='',endBtn='';
+function victory() {
+    musica.pause(); 
+    clearPatterns(); 
+    phase = 'end'; 
+    menuEnabled = false; 
+    ganarDinero(200);
+    
+    // Guardar el nivel 3 como completado
+    let p = JSON.parse(localStorage.getItem('dificil_levels')) || { completed: [] };
+    if (!p.completed.includes(3)) {
+        p.completed.push(3);
+        localStorage.setItem('dificil_levels', JSON.stringify(p));
+    }
+
+    endPhase = 'win'; 
+    endMsg = '¡VICTORIA!'; 
+    endSub = '¡Derrotaste a Undyne the Undying!'; 
+    endBtn = '► CONTINUAR';
+}
+
+function gameOver(){ 
+    musica.pause(); 
+    clearPatterns(); 
+    phase='end'; 
+    endPhase='lose'; 
+    endMsg='GAME OVER'; 
+    endSub='Undyne te ha derrotado...'; 
+    endBtn='► REINTENTAR'; 
+}
+
+function drawEndScreen(){
+    ctx.fillStyle='rgba(0,0,0,0.88)'; ctx.fillRect(0,0,640,480);
+    ctx.textAlign='center'; ctx.fillStyle=endPhase==='win'?CYAN:RED; font(26); ctx.textBaseline='middle'; ctx.fillText(endMsg,320,180);
+    ctx.fillStyle=WHITE; font(10); ctx.fillText(endSub,320,228);
+    const bx=190,by=268,bw=260,bh=32, hover=mx>=bx&&mx<=bx+bw&&my>=by&&my<=by+bh;
+    ctx.fillStyle=hover?WHITE:BLACK; ctx.strokeStyle=CYAN; ctx.lineWidth=3; ctx.fillRect(bx,by,bw,bh); ctx.strokeRect(bx,by,bw,bh);
+    ctx.fillStyle=hover?BLACK:WHITE; font(10); ctx.fillText(endBtn,320,by+16); ctx.textAlign='left';
+}
+
+C.addEventListener('click', e => {
+    if (phase !== 'end') return;
+    const r = C.getBoundingClientRect();
+    const cx = (e.clientX - r.left) * (C.width / r.width);
+    const cy = (e.clientY - r.top) * (C.height / r.height);
+    
+    if (cx >= 190 && cx <= 450 && cy >= 268 && cy <= 300) { 
+        if (endPhase === 'lose') {
+            location.reload(); 
+        } else {
+            window.location.href = 'dificil.html'; 
+        }
+    }
+});
+
+// ── MAIN LOOP ──
+function update(){
+    tick++; bobT++;
+    if(bobT%5===0){bobY+=bobDir;if(bobY>=5||bobY<=0)bobDir*=-1;}
+    if(hitFlash>0) hitFlash--;
+    if(phase==='dialogue') updateDialogue();
+    if(phase==='enemy'){
+        enemyTicks++;
+        if(shieldPhase){
+            updateShieldPhase();
+            if(pHP<=0){gameOver();return;}
+            if(shieldPhaseTimer>=SHIELD_PHASE_DURATION){
+                endShieldPhase(); clearPatterns();
+                const msg=BATTLE_MSG[battleMsgIdx%BATTLE_MSG.length]; battleMsgIdx++;
+                startDialogue(msg,()=>{ phase='menu'; menuEnabled=true; dlgText='* ¿Qué harás?'; dlgFull='* ¿Qué harás?'; dlgDone=true; });
+            }
+        } else if(arrowPhase){
+            updateArrowPhase();
+            if(pHP<=0){gameOver();return;}
+            if(arrowPhaseTimer>=ARROW_PHASE_DURATION){
+                endArrowPhase(); clearPatterns();
+                const msg=BATTLE_MSG[battleMsgIdx%BATTLE_MSG.length]; battleMsgIdx++;
+                startDialogue(msg,()=>{ phase='menu'; menuEnabled=true; dlgText='* ¿Qué harás?'; dlgFull='* ¿Qué harás?'; dlgDone=true; });
+            }
+        } else {
+            const spd=1.8;
+            if(keys['ArrowLeft']) hx=Math.max(BOX.x+12,hx-spd);
+            if(keys['ArrowRight']) hx=Math.min(BOX.x+BOX.w-12,hx+spd);
+            if(keys['ArrowUp']) hy=Math.max(BOX.y+12,hy-spd);
+            if(keys['ArrowDown']) hy=Math.min(BOX.y+BOX.h-12,hy+spd);
+            updateSpears();
+            if(pHP<=0){gameOver();return;}
+            if(enemyTicks>=enemyDuration){
+                clearPatterns();
+                const msg=BATTLE_MSG[battleMsgIdx%BATTLE_MSG.length]; battleMsgIdx++;
+                startDialogue(msg,()=>{ phase='menu'; menuEnabled=true; dlgText='* ¿Qué harás?'; dlgFull='* ¿Qué harás?'; dlgDone=true; });
+            }
+        }
+    }
+    if(fightOpen){ fCursorX+=fCursorDir*3.5; if(fCursorX>=BOX.w-54) fCursorDir=-1; if(fCursorX<=0) fCursorDir=1; }
+}
+
+function draw(){
+    ctx.clearRect(0,0,640,480);
+    drawBackground();
+    drawUndyne(320,60,bobY,hitFlash>0,phase,tick);
+    drawEnemyHP();
+    if(shieldPhase){
+        drawBox();
+        shieldArrows.forEach(a=>drawShieldArrow(a));
+        drawHeart();
+        drawShieldUI();
+    } else if(arrowPhase){
+        drawSmallBox();
+        drawArrowWarning();
+        drawArrow(arrowActive);
+        drawHeart();
+        drawHeartAngleHint();
+        ctx.fillStyle='rgba(0,255,136,0.7)'; font(7); ctx.textBaseline='top';
+        ctx.fillText('Z/X ó ←/→ = GIRAR  |  ↑↓ = MOVER',BOX.x,BOX.y+BOX.h+6);
+    } else {
+        drawBox();
+        if(phase==='enemy'||phase==='menu'||phase==='dialogue'){
+            if(!fightOpen&&!subOpen) drawSpears();
+            drawHeart();
+        }
+    }
+    drawFightBar();
+    drawSubMenu();
+    drawDialogue();
+    drawHPArea();
+    drawMenu();
+    // CORRECCIÓN: Si estamos en fase final, dibujar la pantalla
+    if(phase==='end') drawEndScreen();
+}
+
+function loop(){ update(); draw(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>

@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa - Difícil</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    font-family: 'Press Start 2P', monospace;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  #title {
+    color: #ff4444;
+    font-size: 24px;
+    letter-spacing: 4px;
+    margin-bottom: 30px;
+    text-shadow: 0 0 15px #ff444488;
+  }
+
+  #map-container {
+    position: relative;
+    width: 1200px;
+    height: 580px;
+    background: #0a0000;
+    border: 4px solid #ff4444;
+    box-shadow: 0 0 40px #ff444433;
+  }
+
+  #path-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+
+  .node {
+    position: absolute;
+    width: 84px;
+    height: 84px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 4px solid;
+    transition: transform 0.15s, box-shadow 0.15s;
+    font-family: 'Press Start 2P', monospace;
+    z-index: 5;
+  }
+  .node:hover:not(.locked) { transform: scale(1.12); }
+  .node .node-num   { font-size: 26px; line-height: 1; }
+  .node .node-label { font-size: 9px; margin-top: 6px; letter-spacing: 1px; }
+
+  .node.unlocked {
+    border-color: #ff4444; color: #ff4444;
+    box-shadow: 0 0 20px #ff444466;
+    animation: pulse-red 1.4s ease-in-out infinite;
+  }
+  .node.completed { border-color: #ffaa00; color: #ffaa00; box-shadow: 0 0 20px #ffaa0066; }
+  .node.locked    { border-color: #333; color: #333; cursor: not-allowed; }
+
+  .node.shop {
+    border-color: #cc00ff; color: #cc00ff;
+    box-shadow: 0 0 20px #cc00ff55;
+    animation: pulse-purple 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse-purple {
+    0%, 100% { box-shadow: 0 0 10px #cc00ff44; }
+    50%      { box-shadow: 0 0 25px #cc00ffcc; }
+  }
+
+  @keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 12px #ff444444; }
+    50%      { box-shadow: 0 0 28px #ff4444cc; }
+  }
+
+  .node.locked::after {
+    content: '🔒';
+    font-size: 22px;
+    position: absolute;
+    bottom: -32px;
+    font-family: sans-serif;
+  }
+  .node.locked:hover::before {
+    content: 'COMPLETA LOS ANTERIORES';
+    position: absolute;
+    bottom: 96px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a0000;
+    color: #ff4444;
+    font-size: 9px;
+    padding: 8px 12px;
+    border: 2px solid #ff4444;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  #node1 { left: 150px; top: 175px; }
+  #node2 { left: 410px; top: 80px;  }
+  #node3 { left: 670px; top: 200px; }
+  #node-shop { left: 410px; top: 380px; }
+
+  #node4 {
+    left: 930px; top: 135px;
+    width: 120px; height: 105px;
+  }
+  #node4 .node-num   { font-size: 20px; }
+  #node4 .node-label { font-size: 7px; margin-top: 6px; }
+
+  #node4.unlocked {
+    border-color: #ff0000; color: #ff0000;
+    box-shadow: 0 0 30px #ff000099;
+    animation: pulse-gold 1.4s ease-in-out infinite;
+  }
+  #node4.completed { border-color: #ff0000; color: #ff0000; }
+  @keyframes pulse-gold {
+    0%, 100% { box-shadow: 0 0 16px #ff000044; }
+    50%      { box-shadow: 0 0 36px #ff0000cc; }
+  }
+  #node4.locked::after { content: '🔒'; bottom: -34px; }
+
+  .stars {
+    position: absolute;
+    font-size: 12px;
+    bottom: -24px;
+    font-family: sans-serif;
+  }
+
+  .bg-dot { position: absolute; width: 3px; height: 3px; background: #2a1a1a; border-radius: 50%; }
+
+  #hint { color: #555; font-size: 11px; margin-top: 25px; letter-spacing: 1px; }
+
+  #character {
+    position: absolute; 
+    left: 20px; 
+    top: 240px; 
+    width: 64px; 
+    height: 106px; 
+    image-rendering: pixelated;
+    transition: left 0.75s cubic-bezier(0.25, 1, 0.5, 1), top 0.75s cubic-bezier(0.25, 1, 0.5, 1);
+    z-index: 10;
+  }
+
+  #intro-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.94);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+
+  #intro-box {
+    width: 850px;
+    background: #000;
+    border: 5px solid #fff;
+    padding: 45px;
+    box-shadow: 0 0 0 8px #000;
+  }
+
+  #intro-title {
+    color: #ff0000;
+    font-size: 26px;
+    margin-bottom: 35px;
+    text-align: center;
+    letter-spacing: 3px;
+  }
+
+  #intro-text {
+    color: #fff;
+    font-size: 15px;
+    line-height: 2.2;
+    min-height: 180px; 
+    white-space: pre-line;
+  }
+
+  #intro-btn {
+    display: block;
+    margin: 35px auto 0 auto;
+    background: #000;
+    color: #fff;
+    border: 3px solid #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 13px;
+    padding: 14px 28px;
+    cursor: pointer;
+    visibility: hidden;
+    transition: background 0.2s, color 0.2s;
+  }
+  #intro-btn:hover {
+    background: #fff;
+    color: #000;
+  }
+
+  #btn-info {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: #000;
+    color: #fff;
+    border: 3px solid #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 24px;
+    font-weight: bold;
+    width: 45px;
+    height: 45px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    transition: all 0.2s;
+  }
+  #btn-info:hover {
+    background: #fff;
+    color: #000;
+  }
+
+  #btn-back {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    background: #000;
+    color: #fff;
+    border: 3px solid #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    padding: 12px 20px;
+    cursor: pointer;
+    z-index: 20;
+    transition: all 0.2s;
+  }
+  #btn-back:hover {
+    background: #fff;
+    color: #000;
+  }
+</style>
+</head>
+<body>
+
+<audio id="bgmusic" src="mapa.mp3" loop></audio>
+
+<button id="btn-back">◀ VOLVER</button>
+
+<button id="btn-info" title="Ver información importante">!</button>
+
+<div id="intro-overlay" style="display: none;">
+  <div id="intro-box">
+    <div id="intro-title">* IMPORTANTE *</div>
+    <div id="intro-text"></div>
+    <button id="intro-btn">► CONTINUAR</button>
+  </div>
+</div>
+
+<div id="title">— MODO DIFÍCIL —</div>
+
+<div id="map-container">
+  <svg id="path-svg" viewBox="0 0 1200 580">
+    <line x1="50"  y1="335" x2="185" y2="217" stroke="#3a1a1a" stroke-width="5" stroke-dasharray="10,7"/>
+    <line x1="234" y1="217" x2="452" y2="122" stroke="#3a1a1a" stroke-width="5" stroke-dasharray="10,7" id="path12"/>
+    <line x1="494" y1="122" x2="712" y2="242" stroke="#3a1a1a" stroke-width="5" stroke-dasharray="10,7" id="path23"/>
+    <line x1="754" y1="242" x2="982" y2="187" stroke="#3a1a1a" stroke-width="5" stroke-dasharray="10,7" id="path34"/>
+    <line x1="452" y1="230" x2="452" y2="380" stroke="#441133" stroke-width="4" stroke-dasharray="6,6"/>
+  </svg>
+
+  <canvas id="character" width="12" height="20"></canvas>
+
+  <div class="node unlocked" id="node1" onclick="goLevel(1, 150, 165)">
+    <div class="node-num">1</div>
+    <div class="node-label">TORIEL</div>
+  </div>
+
+  <div class="node locked" id="node2" onclick="goLevel(2, 410, 70)">
+    <div class="node-num">2</div>
+    <div class="node-label">PAPYRUS</div>
+  </div>
+
+  <div class="node shop" id="node-shop" onclick="goShop(410, 370)">
+    <div class="node-num">🛒</div>
+    <div class="node-label">ITEMS</div>
+  </div>
+
+  <div class="node locked" id="node3" onclick="goLevel(3, 670, 190)">
+    <div class="node-num">3</div>
+    <div class="node-label">UNDYNE</div>
+  </div>
+
+  <div class="node locked" id="node4" onclick="goLevel(4, 940, 135)">
+    <div class="node-label">RECOMPENSA</div> <!-- Cambio aquí -->
+</div>
+</div>
+
+<div id="hint">DERROTA LOS 3 BOSSES PARA DESBLOQUEAR LA RECOMPENSA</div>
+
+<script>
+const canvas = document.getElementById('character');
+const ctx = canvas.getContext('2d');
+const _ = null;
+const H = '#3d2314', S = '#f5c9a0', B = '#c27a3a', D = '#8b4a1a';
+const E = '#2a1a0a', W = '#f0e8d8', G = '#4a3020', L = '#c8916a', Z = '#3a2510';
+const sprite = [
+  [_,_,_,H,H,H,H,H,H,_,_,_],
+  [_,_,H,H,H,H,H,H,H,H,_,_],
+  [_,_,H,H,H,H,H,H,H,H,_,_],
+  [_,_,H,S,S,S,S,S,S,H,_,_],
+  [_,_,H,S,E,S,S,E,S,H,_,_],
+  [_,_,H,S,S,S,S,S,S,H,_,_],
+  [_,_,_,S,S,S,S,S,S,_,_,_],
+  [_,_,B,B,B,B,B,B,B,B,_,_],
+  [_,B,B,W,W,W,W,W,B,B,B,_],
+  [_,B,B,W,W,W,W,W,B,B,B,_],
+  [_,B,B,B,B,B,B,B,B,B,B,_],
+  [_,_,B,D,B,B,B,B,D,B,_,_],
+  [_,_,G,G,G,G,G,G,G,G,_,_],
+  [_,_,G,G,G,G,G,G,G,G,_,_],
+  [_,_,L,L,_,G,G,_,L,L,_,_],
+  [_,_,L,L,_,_,_,_,L,L,_,_],
+  [_,_,L,L,_,_,_,_,L,L,_,_],
+  [_,_,Z,Z,_,_,_,_,Z,Z,_,_],
+  [_,_,Z,Z,_,_,_,_,Z,Z,_,_],
+  [_,_,_,_,_,_,_,_,_,_,_,_],
+];
+sprite.forEach((row, y) => row.forEach((color, x) => {
+  if (color) { ctx.fillStyle = color; ctx.fillRect(x, y, 1, 1); }
+}));
+
+const KEY = 'dificil_levels';
+function getProgress() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || { completed: [] }; }
+  catch { return { completed: [] }; }
+}
+function isUnlocked(n) {
+  if (n === 1) return true;
+  const p = getProgress();
+  if (n === 4) {
+    return p.completed.includes(1) && p.completed.includes(2) && p.completed.includes(3);
+  }
+  return p.completed.includes(n - 1);
+}
+function isCompleted(n) { return getProgress().completed.includes(n); }
+
+function updateUI() {
+  const p = getProgress();
+
+  for (let i = 1; i <= 4; i++) {
+    const node = document.getElementById('node' + i);
+    node.classList.remove('unlocked', 'locked', 'completed');
+    const old = node.querySelector('.stars');
+    if (old) old.remove();
+
+    if (isCompleted(i)) {
+      node.classList.add('completed');
+      if (i < 4) {
+        const stars = document.createElement('div');
+        stars.className = 'stars';
+        stars.textContent = '★★★';
+        node.appendChild(stars);
+      }
+    } else if (isUnlocked(i)) {
+      node.classList.add('unlocked');
+    } else {
+      node.classList.add('locked');
+    }
+  }
+
+  ['path12','path23','path34'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el && p.completed.includes(i + 1)) {
+      el.setAttribute('stroke', '#ffaa00');
+      el.setAttribute('stroke-dasharray', '8,5');
+    }
+  });
+}
+
+function playClick(cb) {
+  const s = new Audio('click.mp3');
+  s.volume = 0.6;
+  s.play().catch(() => {});
+  setTimeout(cb, 200);
+}
+
+document.getElementById('btn-back').addEventListener('click', () => {
+  playClick(() => { window.location.href = 'dificultad.html'; });
+});
+
+function moveCharacter(targetX, targetY) {
+  const char = document.getElementById('character');
+  char.style.left = (targetX + 10) + 'px';
+  char.style.top = (targetY - 45) + 'px';
+}
+
+function goLevel(n, nodeX, nodeY) {
+  if (!isUnlocked(n)) return;
+  
+  const sound = new Audio('click.mp3');
+  sound.volume = 0.6;
+  sound.play().catch(() => {});
+  
+  moveCharacter(nodeX, nodeY);
+
+  setTimeout(() => {
+    if (n === 4) window.location.href = 'recompensa.html';
+    else if (n === 1) window.location.href = 'toriel.html';
+    else if (n === 2) window.location.href = 'papyrus.html';
+    else if (n === 3) window.location.href = 'undyne.html';
+  }, 800);
+}
+
+function goShop(nodeX, nodeY) {
+  const sound = new Audio('click.mp3');
+  sound.volume = 0.6;
+  sound.play().catch(() => {});
+  
+  moveCharacter(nodeX, nodeY);
+
+  setTimeout(() => {
+    window.location.href = 'tienda.html';
+  }, 800);
+}
+
+window.completeLevel = function(n) {
+  const p = getProgress();
+  if (!p.completed.includes(n)) p.completed.push(n);
+  localStorage.setItem(KEY, JSON.stringify(p));
+};
+
+updateUI();
+
+const mc = document.getElementById('map-container');
+for (let i = 0; i < 100; i++) {
+  const d = document.createElement('div');
+  d.className = 'bg-dot';
+  d.style.left = Math.random() * 1200 + 'px';
+  d.style.top  = Math.random() * 580 + 'px';
+  mc.appendChild(d);
+}
+
+const bgmusic = document.getElementById('bgmusic');
+bgmusic.volume = 0.4;
+
+function intentarReproducir() {
+  bgmusic.play()
+    .then(() => {
+      document.removeEventListener('click', intentarReproducir);
+      document.removeEventListener('keydown', intentarReproducir);
+    })
+    .catch(() => {});
+}
+
+window.addEventListener('load', intentarReproducir);
+document.addEventListener('click', intentarReproducir);
+document.addEventListener('keydown', intentarReproducir);
+
+const textoImportante = `* Hay una serie de niveles disponibles.\n* Cuanto más avances, más complicado será todo.\n* Cada vez que venzas a un jefe, te recompensará con dinero que podrás usar en la tienda para canjearlo por ítems.\n\nEso es todo. ¡¡Diviértete!! :))`;
+
+const elementoTexto = document.getElementById('intro-text');
+const botonIntro = document.getElementById('intro-btn');
+const capaOverlay = document.getElementById('intro-overlay');
+const btnInfo = document.getElementById('btn-info');
+
+const sonidoLinea = new Audio('letras.mp3'); 
+sonidoLinea.volume = 0.4;
+
+let indexLetra = 0;
+let esNuevaLinea = true;
+let temporizadorTexto = null;
+
+function escribirTexto() {
+  if (indexLetra < textoImportante.length) {
+    const caracterActual = textoImportante.charAt(indexLetra);
+    
+    if (esNuevaLinea && caracterActual !== ' ' && caracterActual !== '\n') {
+      const clonSonido = sonidoLinea.cloneNode();
+      clonSonido.volume = 0.4;
+      clonSonido.play().catch(() => {});
+      esNuevaLinea = false;
+    }
+
+    elementoTexto.innerHTML += caracterActual;
+
+    if (caracterActual === '\n') {
+      esNuevaLinea = true;
+    }
+
+    indexLetra++;
+    temporizadorTexto = setTimeout(escribirTexto, 30);
+  } else {
+    botonIntro.style.visibility = 'visible';
+  }
+}
+
+function iniciarEfectoTexto() {
+  clearTimeout(temporizadorTexto);
+  elementoTexto.innerHTML = '';
+  botonIntro.style.visibility = 'hidden';
+  indexLetra = 0;
+  esNuevaLinea = true;
+  capaOverlay.style.display = 'flex';
+  setTimeout(escribirTexto, 400);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (!localStorage.getItem('visto_intro_mapa_dificil')) {
+    iniciarEfectoTexto();
+  }
+});
+
+botonIntro.addEventListener('click', () => {
+  const sound = new Audio('click.mp3');
+  sound.volume = 0.6;
+  sound.play().catch(() => {});
+  
+  capaOverlay.style.display = 'none';
+  localStorage.setItem('visto_intro_mapa_dificil', 'true');
+  intentarReproducir(); 
+});
+
+btnInfo.addEventListener('click', () => {
+  const sound = new Audio('click.mp3');
+  sound.volume = 0.6;
+  sound.play().catch(() => {});
+  
+  iniciarEfectoTexto();
+});
+// Añade esto al final del script en dificil.html
+window.addEventListener('pageshow', function(event) {
+    // Esto se ejecuta siempre que la página se muestra, incluso al volver atrás
+    updateUI(); 
+});
+</script>
+</body>
+</html>

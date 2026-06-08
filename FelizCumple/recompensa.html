@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Recompensa Especial</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+    body { background: #000; color: #fff; font-family: 'Press Start 2P', monospace; margin: 0; padding: 40px; display: flex; flex-direction: column; align-items: center; }
+    
+    #container { 
+        width: 800px; 
+        border: 4px solid #fff; 
+        padding: 40px; 
+        background: #0a0a0a;
+        box-shadow: 0 0 20px rgba(255,255,255,0.1);
+        overflow-y: auto;
+        height: 60vh;
+        position: relative;
+    }
+
+    #text-content { 
+        line-height: 2.5; 
+        white-space: pre-wrap; /* Mantiene saltos de línea */
+    }
+
+    h1 { color: #ffaa00; text-align: center; margin-bottom: 50px; }
+</style>
+</head>
+<body>
+
+<audio id="bgmusic" src="audio_recompensa.mp3" autoplay loop></audio>
+
+<h1>— MENSAJE ESPECIAL —</h1>
+
+<div id="container">
+    <div id="text-content"></div>
+</div>
+
+<script>
+    const fullText = `Así que te lo has pasado eh ? jajajad nada mal nada mal, parece que sí eres una pro después de todo.
+
+Bueno, seguro que viste muchos fallos y cosas raras, ya sé que no es perfecto pero quise simular un juego en muy poco tiempo.
+
+Estuve jugando al Undertale últimamente y me pareció algo divertido hacerte algo así, más hoy en un día tan bonito y tan especial como tu cumpleaños :)).
+
+Espero que te lo hayas pasado muy bien y te haya podido sacar una sonrisa al menos jsjsjs.
+
+¡Feliz Cumpleaños, Mely!`;
+
+    const textContainer = document.getElementById('text-content');
+    let currentIndex = 0;
+
+    // Función que escribe caracteres poco a poco
+    function typeWriter() {
+        if (currentIndex < fullText.length) {
+            textContainer.innerHTML += fullText.charAt(currentIndex);
+            currentIndex++;
+            
+            // Ajustar velocidad: más lento en signos de puntuación, normal en letras
+            const char = fullText.charAt(currentIndex - 1);
+            const speed = (char === '.' || char === '?' || char === '!') ? 150 : 35;
+            
+            setTimeout(typeWriter, speed);
+        }
+    }
+
+    // Iniciar al cargar
+    window.onload = () => {
+        typeWriter();
+    };
+</script>
+
+</body>
+</html>

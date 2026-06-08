@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tienda de Objetos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    background: #000;
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 20px;
+  }
+
+  /* Contenedor principal de la interfaz estilo Undertale */
+  .shop-container {
+    width: 900px;
+    height: 600px;
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    grid-template-rows: 1.2fr 0.8fr;
+    gap: 6px;
+    background: #fff; /* Efecto de los bordes blancos gruesos */
+    padding: 6px;
+  }
+
+  /* Cajas interiores negras */
+  .shop-box {
+    background: #000;
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* Caja 1: Mostrador / Ilustración (Arriba Izquierda) */
+  .box-counter {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 2px dashed #333;
+  }
+  
+  .counter-placeholder {
+    color: #ffdd00;
+    font-size: 16px;
+    text-align: center;
+    line-height: 1.8;
+  }
+
+  /* Caja 2: Lista de ítems (Abajo Izquierda) */
+  .box-menu {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .menu-option {
+    font-size: 16px;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    user-select: none;
+    transition: color 0.1s;
+  }
+
+  /* El corazón de Undertale */
+  .heart-icon {
+    width: 14px;
+    height: 14px;
+    background: #ff0000;
+    display: inline-block;
+    visibility: hidden;
+    clip-path: polygon(50% 15%, 65% 0%, 100% 0%, 100% 40%, 50% 95%, 0% 40%, 0% 0%, 35% 0%);
+  }
+
+  /* Efectos Hover */
+  .menu-option:hover {
+    color: #ffdd00;
+  }
+  .menu-option:hover .heart-icon {
+    visibility: visible;
+  }
+
+  /* Caja 3: Stats / Info del Ítem (Arriba Derecha) */
+  .box-description {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1.8;
+    color: #fff;
+  }
+
+  /* Caja 4: Diálogo del tendero y Oro (Abajo Derecha) */
+  .box-status {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+    justify-content: space-between;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .status-gold-space {
+    display: flex;
+    justify-content: space-between;
+    color: #fff;
+    margin-top: 15px;
+  }
+</style>
+</head>
+<body>
+
+<audio id="bgmusic-tienda" src="tienda.mp3" loop></audio>
+
+<div class="shop-container">
+
+  <div class="shop-box box-counter">
+    <div class="counter-placeholder">
+      [ TIENDA DE ITEMS ]<br>
+      <span style="color: #888; font-size: 12px;">Elige sabiamente para tu combate</span>
+    </div>
+  </div>
+
+  <div class="shop-box box-description">
+    <p id="desc-text">Pasa el ratón por encima de un objeto para ver sus propiedades.</p>
+  </div>
+
+  <div class="shop-box box-menu">
+    <div class="menu-option" onmouseenter="mostrarDesc(1)" onclick="comprarItem('Caramelo', 15)">
+      <span class="heart-icon"></span> 15G - Caramelo Monstruo
+    </div>
+    <div class="menu-option" onmouseenter="mostrarDesc(2)" onclick="comprarItem('Donut Araña', 25)">
+      <span class="heart-icon"></span> 25G - Donut de Araña
+    </div>
+    <div class="menu-option" onmouseenter="mostrarDesc(3)" onclick="comprarItem('Héroe Leg.', 80)">
+      <span class="heart-icon"></span> 80G - Héroe Legendario
+    </div>
+    <div class="menu-option" onmouseenter="mostrarDesc(4)" onclick="comprarItem('Tarta Toriel', 120)">
+      <span class="heart-icon"></span> 120G - Tarta Toriel
+    </div>
+    <div class="menu-option" onmouseenter="mostrarDesc(5)" onclick="salirTienda()">
+      <span class="heart-icon"></span> Salir
+    </div>
+  </div>
+
+  <div class="shop-box box-status">
+    <div id="npc-dialogo">¿Vas a comprar algo o qué?</div>
+    <div class="status-gold-space">
+      <div><span id="gold-display">100</span>G</div>
+      <div><span id="space-display">0</span>/8</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Carga de datos localStorage
+  let oro = parseInt(localStorage.getItem('jugadorOro')) || 100;
+  let mochila = JSON.parse(localStorage.getItem('jugadorInventario')) || [];
+
+  // Control del Audio de fondo
+  const bgmusic = document.getElementById('bgmusic-tienda');
+  
+  // Intenta reproducir al cargar la página
+  bgmusic.play().catch(() => {
+    // Si el navegador lo bloquea, se reproduce en cuanto hagan clic en cualquier parte de la pantalla
+    document.addEventListener('click', () => {
+      bgmusic.play();
+    }, { once: true });
+  });
+
+  const descripciones = {
+    1: "Cura 20 HP.<br>Un caramelo con sabor a manzana.",
+    2: "Cura 30 HP.<br>Hecho por arañas, para arañas.",
+    3: "Cura 70 HP.<br>Aumenta el espíritu de combate.",
+    4: "CURA TOTAL.<br>Huele a canela y hogar.",
+    5: "Cierra la tienda y vuelve al menú de dificultades."
+  };
+
+  function actualizarPantalla() {
+    document.getElementById('gold-display').textContent = oro;
+    document.getElementById('space-display').textContent = mochila.length;
+  }
+
+  function mostrarDesc(id) {
+    document.getElementById('desc-text').innerHTML = descripciones[id];
+  }
+
+  function comprarItem(nombre, precio) {
+    const sound = new Audio('click.mp3');
+    sound.play().catch(() => {});
+
+    if (mochila.length >= 8) {
+      document.getElementById('npc-dialogo').innerHTML = "¡Tu mochila está llena!<br>No puedes cargar más.";
+      return;
+    }
+
+    if (oro >= precio) {
+      oro -= precio;
+      mochila.push(nombre);
+      
+      localStorage.setItem('jugadorOro', oro);
+      localStorage.setItem('jugadorInventario', JSON.stringify(mochila));
+      
+      actualizarPantalla();
+      document.getElementById('npc-dialogo').innerHTML = `¡Gracias por comprar<br>el ${nombre}!`;
+    } else {
+      document.getElementById('npc-dialogo').innerHTML = "No tienes suficiente oro...<br>No hago fiados.";
+    }
+  }
+
+  function salirTienda() {
+    const sound = new Audio('click.mp3');
+    sound.play().catch(() => {});
+    setTimeout(() => {
+      window.location.href = 'dificil.html';
+    }, 200);
+  }
+
+  actualizarPantalla();
+</script>
+
+</body>
+</html>

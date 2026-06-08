@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feliz Cumpleaños Melanie</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Press Start 2P', monospace;
+    overflow: hidden;
+  }
+
+  #bday-text {
+    font-size: 52px;
+    text-align: center;
+    line-height: 2;
+    animation: zoomPulse 1.6s ease-in-out infinite;
+    letter-spacing: 2px;
+    user-select: none;
+  }
+
+  #name-text {
+    font-size: 42px;
+    text-align: center;
+    animation: zoomPulse 1.6s ease-in-out infinite;
+    animation-delay: 0.2s;
+    letter-spacing: 6px;
+    user-select: none;
+    margin-top: 10px;
+  }
+
+  @keyframes zoomPulse {
+    0%   { transform: scale(0.5); }
+    50%  { transform: scale(1.1); }
+    100% { transform: scale(0.5); }
+  }
+
+  #next-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 22px;
+    color: #fff;
+    background: #000;
+    border: 3px solid #fff;
+    padding: 20px 40px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    animation: blink 1.1s step-start infinite;
+    margin-top: 50px;
+  }
+
+  #next-btn:hover {
+    background: #fff;
+    color: #000;
+    animation: none;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+</style>
+</head>
+
+<body>
+
+<!-- Música principal -->
+<audio id="bgmusic" src="principal.mp3" loop></audio>
+
+<div id="bday-text">
+  <span id="line1">FELIZ</span><br>
+  <span id="line2">CUMPLEAÑOS</span>
+</div>
+
+<div id="name-text">Melanie</div>
+
+<button id="next-btn">► SIGUIENTE</button>
+
+<script>
+const colors = [
+  '#FF4444',
+  '#FF9900',
+  '#FFEE00',
+  '#44FF44',
+  '#44CCFF',
+  '#CC44FF',
+  '#FF44CC',
+  '#FF6644',
+  '#00FFAA',
+  '#FFFFFF'
+];
+
+function colorize(el) {
+  const text = el.dataset.text || el.textContent;
+  el.dataset.text = text;
+  el.innerHTML = '';
+
+  for (let ch of text) {
+    if (ch === ' ') {
+      el.appendChild(document.createTextNode(' '));
+      continue;
+    }
+
+    const span = document.createElement('span');
+    span.textContent = ch;
+    span.style.color =
+      colors[Math.floor(Math.random() * colors.length)];
+
+    el.appendChild(span);
+  }
+}
+
+const nameEl = document.getElementById('name-text');
+nameEl.dataset.text = 'Melanie';
+
+function recolor() {
+  colorize(document.getElementById('line1'));
+  colorize(document.getElementById('line2'));
+  colorize(nameEl);
+}
+
+recolor();
+setInterval(recolor, 300);
+
+/* Música principal */
+const music = document.getElementById('bgmusic');
+
+music.play().catch(() => {
+  document.addEventListener('click', () => {
+    music.play();
+  }, { once: true });
+});
+
+/* Botón siguiente */
+const nextBtn = document.getElementById('next-btn');
+
+nextBtn.addEventListener('click', () => {
+
+  // Detener música principal
+  music.pause();
+
+  // Sonido del botón
+  const clickSound = new Audio('click.mp3');
+
+  clickSound.play();
+
+  clickSound.addEventListener('ended', () => {
+    window.location.href = 'dificultad.html';
+  });
+
+  // Respaldo por si el evento ended falla
+  setTimeout(() => {
+    window.location.href = 'dificultad.html';
+  }, 1500);
+});
+</script>
+
+</body>
+</html>

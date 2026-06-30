@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Panda Bambú 🐼</title>
+<style>
+  :root{
+    --cielo-1:#8FD9F7;
+    --cielo-2:#6CC9F0;
+    --cielo-3:#4FB8E8;
+    --sol-1:#FFF3C4;
+    --sol-2:#FFE08A;
+    --sol-3:#FFC94D;
+    --tronco-1:#7a5230;
+    --tronco-2:#5c3c20;
+    --hoja-1:#2f8f4e;
+    --hoja-2:#1f6b39;
+    --hoja-3:#3fae66;
+    --suelo-1:#e8c14a;
+    --suelo-2:#d9a82f;
+    --sombra:rgba(60,40,10,0.18);
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    height:100dvh;
+    overflow:hidden;
+    overscroll-behavior:none;
+    font-family:'Segoe UI', Verdana, sans-serif;
+    background:linear-gradient(180deg, var(--cielo-1) 0%, var(--cielo-2) 50%, var(--cielo-3) 78%, var(--suelo-1) 86%, var(--suelo-2) 100%);
+    background-color: var(--suelo-2);
+  }
+
+  #escenario{
+    position:relative;
+    width:100%;
+    height:100%;
+    height:100dvh;
+  }
+
+  canvas{
+    display:block;
+    width:100%;
+    height:100%;
+    cursor:pointer;
+    touch-action:none;
+  }
+
+  #titulo{
+    position:absolute;
+    top:max(14px, env(safe-area-inset-top));
+    left:50%;
+    transform:translateX(-50%);
+    width:92%;
+    color:#5c3c20;
+    text-shadow: 0 2px 0 rgba(255,255,255,0.35);
+    font-size:clamp(1rem, 4.2vw, 1.6rem);
+    letter-spacing:clamp(0.5px, 0.4vw, 2px);
+    font-weight:800;
+    text-align:center;
+    pointer-events:none;
+    user-select:none;
+    text-transform:uppercase;
+    line-height:1.25;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  #pista{
+    position:absolute;
+    bottom:max(14px, env(safe-area-inset-bottom));
+    left:50%;
+    transform:translateX(-50%);
+    max-width:88vw;
+    color:#5c3c20;
+    background:rgba(255,255,255,0.4);
+    padding:clamp(6px,1.8vw,8px) clamp(12px,4vw,18px);
+    border-radius:30px;
+    font-size:clamp(0.72rem, 3.2vw, 0.9rem);
+    font-weight:600;
+    text-align:center;
+    pointer-events:none;
+    user-select:none;
+    backdrop-filter: blur(2px);
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    transition:opacity 0.4s ease;
+    white-space:nowrap;
+  }
+
+  /* Ajustes finos para móviles pequeños y orientación apaisada */
+  @media (max-width:480px){
+    #titulo{ top:10px; }
+    #pista{ bottom:10px; }
+  }
+  @media (max-height:420px){
+    #titulo{ font-size:clamp(0.85rem, 4vw, 1.1rem); top:6px; }
+    #pista{ font-size:0.68rem; padding:5px 12px; bottom:6px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="escenario">
+  <div id="titulo">🐼 El Panda Vago del Bambú 🎋</div>
+  <canvas id="lienzo"></canvas>
+  <div id="pista">Toca al panda para verlo rodar</div>
+</div>
+
+<script>
+/* =====================================================================
+   PANDA BAMBÚ — animación 2D con sombreado pseudo-3D sobre <canvas>
+   ---------------------------------------------------------------------
+   Estructura del código:
+     1. Configuración general y referencias al DOM
+     2. Utilidades de dibujo (gradientes, elipses, formas con volumen)
+     3. Fondo tropical (cielo, sol, suelo, palmeras animadas)
+     4. Construcción del panda (cuerpo, cabeza, orejas, brazos, bambú)
+     5. Máquina de estados de animación (reposo / comiendo / rodando)
+     6. Bucle principal (requestAnimationFrame con delta time)
+     7. Interacción de usuario (click para rodar izquierda/derecha)
+   ===================================================================== */
+
+(function(){
+  "use strict";
+
+  /* ------------------------------------------------------------------
+     1. CONFIGURACIÓN GENERAL
+  ------------------------------------------------------------------ */
+  const lienzo  = document.getElementById('lienzo');
+  const ctx     = lienzo.getContext('2d');
+  const pistaEl = document.getElementById('pista');
+
+  let ANCHO = 0, ALTO = 0, DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+
+  function ajustarTamano(){
+    // visualViewport refleja con más precisión el área realmente visible
+    // en navegadores móviles (descuenta barra de direcciones, etc.)
+    const vv = window.visualViewport;
+    ANCHO = Math.ceil(vv ? vv.width  : window.innerWidth);
+    ALTO  = Math.ceil(vv ? vv.height : window.innerHeight);
+    lienzo.width  = Math.ceil(ANCHO * DPR);
+    lienzo.height = Math.ceil(ALTO * DPR);
+    lienzo.style.width  = ANCHO + 'px';
+    lienzo.style.height = ALTO + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    recalcularPosiciones();
+  }
+
+  /* ------------------------------------------------------------------
+     2. UTILIDADES DE DIBUJO
+  ------------------------------------------------------------------ */
+
+  // Dibuja una elipse rellena con gradiente radial para dar sensación
+  // de volumen (luz superior-izquierda, sombra inferior-derecha).
+  function elipseConVolumen(cx, cy, rx, ry, colorClaro, colorOscuro, rotacion){
+    rotacion = rotacion || 0;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rotacion);
+    const grad = ctx.createRadialGradient(
+      -rx*0.35, -ry*0.45, rx*0.15,
+       rx*0.15,  ry*0.35, rx*1.25
+    );
+    grad.addColorStop(0, colorClaro);
+    grad.addColorStop(1, colorOscuro);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Elipse plana (sin degradado) — útil para manchas negras, ojos, etc.
+  function elipseSolida(cx, cy, rx, ry, color, rotacion){
+    rotacion = rotacion || 0;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rotacion);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function circuloBrillo(cx, cy, r, alpha){
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r, r*0.7, -0.5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /* ------------------------------------------------------------------
+     3. FONDO TROPICAL
+  ------------------------------------------------------------------ */
+
+  // Generamos posiciones de palmeras una sola vez (semilla fija por sesión)
+  let palmeras = [];
+  let nubes = [];
+  let pajaros = [];
+
+  function generarFondoEstatico(){
+    palmeras = [];
+    // En pantallas estrechas usamos palmeras algo más pequeñas para que la
+    // escena no se vea recargada ni tape al panda por completo, pero
+    // mantenemos buena densidad para que se note un paisaje frondoso.
+    const factorEscena = Math.max(0.55, Math.min(1, ANCHO / 820));
+    const totalPalmeras = Math.max(6, Math.floor(ANCHO/150));
+    for(let i=0;i<totalPalmeras;i++){
+      palmeras.push({
+        x: (ANCHO/totalPalmeras) * i + (ANCHO/totalPalmeras)*0.5 + (Math.random()*70-35)*factorEscena,
+        alturaTronco: (130 + Math.random()*95) * factorEscena,
+        grosorTronco: (13 + Math.random()*7) * factorEscena,
+        inclinacion: (Math.random()*0.34 - 0.17),
+        escalaHojas: (0.75 + Math.random()*0.45) * factorEscena,
+        faseViento: Math.random()*Math.PI*2,
+        profundidad: Math.random() < 0.45 ? 'fondo' : 'frente'
+      });
+    }
+    nubes = [];
+    for(let i=0;i<5;i++){
+      nubes.push({
+        x: Math.random()*ANCHO,
+        y: (40 + Math.random()*120) * factorEscena,
+        escala: (0.6 + Math.random()*0.8) * factorEscena,
+        velocidad: 4 + Math.random()*6
+      });
+    }
+
+    // ---- PÁJAROS: algunos vuelan hacia la derecha, otros hacia la
+    // izquierda, así siempre hay alguno "yendo" y otro "viniendo". ----
+    pajaros = [];
+    const totalPajaros = Math.max(4, Math.floor(ANCHO/240));
+    for(let i=0;i<totalPajaros;i++){
+      pajaros.push(crearPajaro(true));
+    }
+  }
+
+  function crearPajaro(posicionInicial){
+    const direccion = Math.random() < 0.5 ? 1 : -1;
+    const y = ALTO * (0.08 + Math.random()*0.34);
+    const escala = 0.6 + Math.random()*0.7;
+    const velocidad = (0.55 + Math.random()*0.85) * (escala*0.6+0.7);
+    return {
+      x: posicionInicial ? Math.random()*ANCHO : (direccion === 1 ? -40 : ANCHO+40),
+      y: y,
+      yBase: y,
+      direccion: direccion,
+      velocidad: velocidad,
+      escala: escala,
+      faseAleteo: Math.random()*Math.PI*2,
+      velocidadAleteo: 0.009 + Math.random()*0.006,
+      faseOndulacion: Math.random()*Math.PI*2
+    };
+  }
+
+  function dibujarSol(t){
+    const cx = ANCHO*0.82, cy = ALTO*0.18, r = 70;
+    // halo
+    const halo = ctx.createRadialGradient(cx,cy,r*0.3, cx,cy,r*2.6);
+    halo.addColorStop(0,'rgba(255,255,255,0.55)');
+    halo.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(cx,cy,r*2.6,0,Math.PI*2);
+    ctx.fill();
+    // disco
+    const grad = ctx.createRadialGradient(cx-r*0.3,cy-r*0.3,r*0.1, cx,cy,r);
+    grad.addColorStop(0,'#FFFDE7');
+    grad.addColorStop(0.6,'#FFE082');
+    grad.addColorStop(1,'#FFC94D');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  function dibujarNube(n, t){
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = '#ffffff';
+    const x = n.x, y = n.y, e = n.escala;
+    ctx.beginPath();
+    ctx.ellipse(x, y, 30*e, 16*e, 0, 0, Math.PI*2);
+    ctx.ellipse(x+24*e, y-8*e, 22*e, 14*e, 0, 0, Math.PI*2);
+    ctx.ellipse(x-26*e, y-4*e, 20*e, 13*e, 0, 0, Math.PI*2);
+    ctx.ellipse(x+4*e, y-14*e, 18*e, 12*e, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Dibuja un pájaro estilizado en forma de "M" con las alas batiendo.
+  // El ángulo de las alas oscila con el tiempo para simular el vuelo.
+  function dibujarPajaro(p, t){
+    const aleteo = Math.sin(t*p.velocidadAleteo + p.faseAleteo); // -1..1
+    const aperturaAla = 9 + aleteo*9; // amplitud del batido
+    const e = p.escala;
+    const mirandoDerecha = p.direccion === 1;
+
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.scale(mirandoDerecha ? 1 : -1, 1); // espejo según dirección de vuelo
+    ctx.scale(e, e);
+    ctx.strokeStyle = 'rgba(50,40,35,0.75)';
+    ctx.lineWidth = 2.6;
+    ctx.lineCap = 'round';
+
+    // ala izquierda
+    ctx.beginPath();
+    ctx.moveTo(-16, 0);
+    ctx.quadraticCurveTo(-8, -aperturaAla, 0, 0);
+    ctx.stroke();
+    // ala derecha
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(8, -aperturaAla, 16, 0);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function actualizarPajaros(dt){
+    pajaros.forEach(p=>{
+      p.x += p.direccion * p.velocidad * (dt/16.67);
+      // pequeña ondulación vertical para un vuelo más orgánico
+      p.y = p.yBase + Math.sin((p.x*0.02) + p.faseOndulacion) * 10;
+
+      // cuando el pájaro sale completamente de la pantalla, lo regeneramos
+      // por el lado contrario: así siempre hay bandada "yendo y viniendo"
+      const margen = 50 * p.escala + 20;
+      if((p.direccion === 1 && p.x > ANCHO + margen) ||
+         (p.direccion === -1 && p.x < -margen)){
+        Object.assign(p, crearPajaro(false));
+      }
+    });
+  }
+
+  function dibujarPalmera(p, t){
+    const baseX = p.x;
+    const baseY = posYSuelo;
+    const viento = Math.sin(t*0.0012 + p.faseViento) * 0.06;
+
+    ctx.save();
+    ctx.translate(baseX, baseY);
+
+    // ---- TRONCO (curva con segmentos para dar volumen y movimiento) ----
+    const segmentos = 7;
+    const alturaSeg = p.alturaTronco / segmentos;
+    let ang = p.inclinacion;
+    ctx.save();
+    let curX = 0, curY = 0;
+    for(let i=0;i<segmentos;i++){
+      const grosor = p.grosorTronco * (1 - i/segmentos*0.55);
+      const desplazAng = p.inclinacion + viento*(i/segmentos) + Math.sin(i*1.3)*0.04;
+      const nx = curX + Math.sin(desplazAng) * alturaSeg;
+      const ny = curY - Math.cos(desplazAng) * alturaSeg;
+
+      const gradTronco = ctx.createLinearGradient(curX-grosor, curY, curX+grosor, curY);
+      gradTronco.addColorStop(0, '#4a3018');
+      gradTronco.addColorStop(0.45, '#8a5e35');
+      gradTronco.addColorStop(1, '#6b4624');
+      ctx.strokeStyle = gradTronco;
+      ctx.lineWidth = grosor;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(curX,curY);
+      ctx.lineTo(nx,ny);
+      ctx.stroke();
+
+      // textura: pequeñas marcas horizontales del tronco
+      ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(curX-grosor*0.4, curY+2);
+      ctx.lineTo(curX+grosor*0.4, curY-2);
+      ctx.stroke();
+
+      curX = nx; curY = ny;
+    }
+    ctx.restore();
+
+    // ---- COPA DE HOJAS ----
+    const copaX = curX, copaY = curY;
+    const numHojas = 7;
+    for(let i=0;i<numHojas;i++){
+      const anguloBase = (Math.PI*2/numHojas)*i + p.faseViento*0.3;
+      const oscila = Math.sin(t*0.0016 + i) * 0.18 + viento*1.6;
+      const angHoja = anguloBase + oscila - Math.PI/2;
+      dibujarHojaPalmera(copaX, copaY, angHoja, p.escalaHojas);
+    }
+    // centro de la copa (cogollo)
+    elipseConVolumen(copaX, copaY, 9*p.escalaHojas, 9*p.escalaHojas, '#6b4624', '#3c2a14');
+
+    // ---- COCOS ----
+    for(let i=0;i<3;i++){
+      const a = i*2.1 + 0.6;
+      elipseConVolumen(copaX + Math.cos(a)*10*p.escalaHojas, copaY + 14*p.escalaHojas + Math.sin(a)*4, 6,7,'#8a6a3a','#4a3018');
+    }
+
+    ctx.restore();
+
+    // ---- SOMBRA EN EL SUELO ----
+    ctx.save();
+    ctx.globalAlpha = 0.20;
+    ctx.fillStyle = '#3c2a14';
+    ctx.beginPath();
+    ctx.ellipse(baseX + 14, posYSuelo + 6, 40, 9, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function dibujarHojaPalmera(x, y, angulo, escala){
+    const largo = 95 * escala;
+    const ancho = 16 * escala;
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(angulo);
+
+    const gradHoja = ctx.createLinearGradient(0,0,largo,0);
+    gradHoja.addColorStop(0,'#2f7a40');
+    gradHoja.addColorStop(0.5,'#3fae66');
+    gradHoja.addColorStop(1,'#1f6b39');
+    ctx.fillStyle = gradHoja;
+
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.quadraticCurveTo(largo*0.45, -ancho*1.4, largo, -ancho*0.2);
+    ctx.quadraticCurveTo(largo*0.55, ancho*0.4, 0,0);
+    ctx.fill();
+
+    // nervadura central
+    ctx.strokeStyle = 'rgba(15,60,30,0.5)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(2,0);
+    ctx.quadraticCurveTo(largo*0.5, -ancho*0.5, largo*0.96, -ancho*0.15);
+    ctx.stroke();
+
+    // foliolos (rayas de la hoja)
+    ctx.strokeStyle = 'rgba(15,60,30,0.35)';
+    ctx.lineWidth = 1;
+    for(let i=1;i<=6;i++){
+      const f = i/7;
+      ctx.beginPath();
+      ctx.moveTo(largo*f, -ancho*1.1*f*0.6);
+      ctx.lineTo(largo*f + 6, -ancho*1.4*f*0.6 - 4);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  function dibujarSuelo(t){
+    const yBase = posYSuelo;
+    const gradSuelo = ctx.createLinearGradient(0,yBase,0,ALTO);
+    gradSuelo.addColorStop(0,'#f1d066');
+    gradSuelo.addColorStop(1,'#d9a82f');
+    ctx.fillStyle = gradSuelo;
+    ctx.beginPath();
+    ctx.moveTo(0,yBase);
+    for(let x=0;x<=ANCHO;x+=40){
+      const ondulacion = Math.sin(x*0.02 + t*0.0006)*6;
+      ctx.lineTo(x, yBase + ondulacion);
+    }
+    ctx.lineTo(ANCHO, ALTO);
+    ctx.lineTo(0, ALTO);
+    ctx.closePath();
+    ctx.fill();
+
+    // hierbecillas decorativas
+    ctx.strokeStyle = 'rgba(95,140,40,0.55)';
+    ctx.lineWidth = 2;
+    for(let x=10; x<ANCHO; x+=34){
+      const h = 10 + ((x*13)%14);
+      const yb = yBase + Math.sin(x*0.02 + t*0.0006)*6 + 4;
+      ctx.beginPath();
+      ctx.moveTo(x, yb);
+      ctx.quadraticCurveTo(x-4, yb-h*0.6, x-2 + Math.sin(t*0.002+x)*3, yb-h);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, yb);
+      ctx.quadraticCurveTo(x+4, yb-h*0.6, x+2 + Math.sin(t*0.002+x)*3, yb-h);
+      ctx.stroke();
+    }
+  }
+
+  function dibujarFondo(t, dt){
+    // cielo (ya está como CSS de fondo, pero reforzamos un degradado en canvas)
+    const cielo = ctx.createLinearGradient(0,0,0,posYSuelo + ALTO*0.02);
+    cielo.addColorStop(0,'#8FD9F7');
+    cielo.addColorStop(0.6,'#6CC9F0');
+    cielo.addColorStop(1,'#4FB8E8');
+    ctx.fillStyle = cielo;
+    ctx.fillRect(0,0,ANCHO,posYSuelo + ALTO*0.02);
+
+    dibujarSol(t);
+    nubes.forEach(n=>{
+      n.x += n.velocidad * 0.016;
+      if(n.x - 60 > ANCHO) n.x = -60;
+      dibujarNube(n,t);
+    });
+
+    // pájaros: cruzan el cielo en ambas direcciones, "yendo y viniendo"
+    actualizarPajaros(dt);
+    pajaros.forEach(p=>dibujarPajaro(p,t));
+
+    // todas las palmeras se dibujan aquí, ANTES que el panda, para que
+    // este nunca quede tapado por ellas (las más cercanas al espectador
+    // se dibujan un poco más grandes, dando sensación de profundidad
+    // sin llegar nunca a ocultar al protagonista)
+    palmeras.forEach(p=>dibujarPalmera(p,t));
+
+    dibujarSuelo(t);
+  }
+
+  /* ------------------------------------------------------------------
+     4. CONSTRUCCIÓN DEL PANDA
+  ------------------------------------------------------------------ */
+
+  // Paleta del panda
+  const PANDA = {
+    blancoClaro: '#ffffff',
+    blancoSombra: '#dcdcdc',
+    negroClaro: '#4a4a4a',
+    negroOscuro: '#161616',
+    pielNariz: '#2b2b2b',
+    rosaInterior: '#f3b6c2'
+  };
+
+  // Dibuja el panda completo centrado en (0,0) mirando hacia ANCHO (derecha por defecto).
+  // 'animacion' contiene variables de tiempo para masticar/respirar/parpadear.
+  function dibujarPanda(animacion){
+    const escala = animacion.escala;
+    ctx.save();
+    ctx.scale(escala, escala);
+
+    const respirar = Math.sin(animacion.tiempo*0.004) * 2;     // sube/baja el cuerpo
+    const masticar = (Math.sin(animacion.tiempo*0.012) + 1)/2; // 0..1 ciclo de masticado
+    const parpadeo = animacion.parpadeoFactor; // 0 = ojos abiertos, 1 = cerrados
+
+    // ---------------- SOMBRA DE CONTACTO EN EL SUELO ----------------
+    ctx.save();
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = '#3c2a14';
+    ctx.beginPath();
+    ctx.ellipse(0, 96, 70, 16, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(0, respirar);
+
+    // ---------------- PIERNAS TRASERAS (detrás del cuerpo) ----------------
+    elipseConVolumen(-38, 78, 24, 20, PANDA.negroClaro, PANDA.negroOscuro);
+    elipseConVolumen( 38, 78, 24, 20, PANDA.negroClaro, PANDA.negroOscuro);
+
+    // ---------------- COLA ----------------
+    elipseConVolumen(0, 92, 10, 8, PANDA.blancoClaro, PANDA.blancoSombra);
+
+    // ---------------- CUERPO ----------------
+    elipseConVolumen(0, 30, 62, 70, PANDA.blancoClaro, PANDA.blancoSombra);
+
+    // mancha de la panza ligeramente diferenciada (volumen extra)
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    const grad = ctx.createRadialGradient(0,40,5, 0,40,55);
+    grad.addColorStop(0,'rgba(255,255,255,0.6)');
+    grad.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(0,40,55,60,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    // ---------------- BRAZO TRASERO (sosteniendo apoyo, detrás) ----------------
+    elipseConVolumen(-58, 22, 16, 34, PANDA.negroClaro, PANDA.negroOscuro, -0.3);
+
+    // ---------------- CABEZA (grupo aparte para animar mordisco) ----------------
+    ctx.save();
+    ctx.translate(0, -58);
+
+    // orejas
+    elipseConVolumen(-44, -34, 20, 20, PANDA.negroClaro, PANDA.negroOscuro);
+    elipseConVolumen( 44, -34, 20, 20, PANDA.negroClaro, PANDA.negroOscuro);
+    elipseSolida(-44,-34, 11, 11, '#2a2a2a');
+    elipseSolida( 44,-34, 11, 11, '#2a2a2a');
+
+    // cráneo / cara base
+    elipseConVolumen(0, 0, 56, 50, PANDA.blancoClaro, PANDA.blancoSombra);
+
+    // manchas negras de los ojos (forma almendrada característica del panda)
+    elipseConVolumen(-26, -2, 17, 22, PANDA.negroClaro, PANDA.negroOscuro, -0.35);
+    elipseConVolumen( 26, -2, 17, 22, PANDA.negroClaro, PANDA.negroOscuro,  0.35);
+
+    // ojos (blanco + iris) con parpadeo
+    const aperturaOjo = 7 * (1-parpadeo) + 0.6*parpadeo;
+    elipseSolida(-24, -2, 7, aperturaOjo, '#ffffff');
+    elipseSolida( 24, -2, 7, aperturaOjo, '#ffffff');
+    if(parpadeo < 0.7){
+      elipseSolida(-22.5, -1, 3.6, 3.6*(1-parpadeo)+0.3, '#1a1a1a');
+      elipseSolida( 25.5, -1, 3.6, 3.6*(1-parpadeo)+0.3, '#1a1a1a');
+      circuloBrillo(-21, -3, 1.6, 0.9);
+      circuloBrillo( 27, -3, 1.6, 0.9);
+    }
+
+    // hocico (zona clara sobreelevada)
+    elipseConVolumen(0, 18, 26, 19, '#ffffff', '#eceaea');
+
+    // nariz
+    ctx.save();
+    ctx.fillStyle = PANDA.pielNariz;
+    ctx.beginPath();
+    ctx.ellipse(0, 12, 7, 5, 0, 0, Math.PI*2);
+    ctx.fill();
+    circuloBrillo(-2, 10, 1.4, 0.5);
+    ctx.restore();
+
+    // ---- BOCA con animación de masticado ----
+    const aperturaBoca = 4 + masticar*7;
+    ctx.save();
+    ctx.strokeStyle = '#5a3b2b';
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-9, 20);
+    ctx.quadraticCurveTo(0, 20 + aperturaBoca, 9, 20);
+    ctx.stroke();
+    ctx.restore();
+
+    // mejillas sonrosadas (sutil)
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    elipseSolida(-32, 16, 7, 5, '#f3b6c2');
+    elipseSolida( 32, 16, 7, 5, '#f3b6c2');
+    ctx.restore();
+
+    ctx.restore(); // fin cabeza
+
+    // ---------------- BRAZO DELANTERO + BAMBÚ (encima, animado) ----------------
+    // El brazo sube el bambú hacia la boca según el ciclo de masticado.
+    const subidaBrazo = masticar * 14;
+    ctx.save();
+    ctx.translate(48, -6 - subidaBrazo*0.4);
+    ctx.rotate(-0.25 - masticar*0.18);
+    elipseConVolumen(0, 20, 16, 32, PANDA.negroClaro, PANDA.negroOscuro);
+
+    // mano (pata) sosteniendo el bambú
+    elipseConVolumen(2, 44, 13, 11, PANDA.negroClaro, PANDA.negroOscuro);
+
+    // tallo de bambú
+    ctx.save();
+    ctx.translate(2, 30);
+    ctx.rotate(0.65);
+    const gradBambu = ctx.createLinearGradient(-8,0,8,0);
+    gradBambu.addColorStop(0,'#bfe085');
+    gradBambu.addColorStop(0.5,'#8fc24c');
+    gradBambu.addColorStop(1,'#5a9233');
+    ctx.fillStyle = gradBambu;
+    ctx.beginPath();
+    ctx.roundRect(-8, -55, 16, 90, 8);
+    ctx.fill();
+    // nudos del bambú
+    ctx.strokeStyle = '#4a7a28';
+    ctx.lineWidth = 3;
+    for(let i=-45;i<=30;i+=22){
+      ctx.beginPath();
+      ctx.moveTo(-8, i);
+      ctx.lineTo(8, i);
+      ctx.stroke();
+    }
+    // hojas de bambú en la punta
+    ctx.fillStyle = '#6fae3e';
+    ctx.beginPath();
+    ctx.moveTo(-2,-55);
+    ctx.quadraticCurveTo(-26,-66,-30,-86);
+    ctx.quadraticCurveTo(-10,-72,-2,-55);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(4,-55);
+    ctx.quadraticCurveTo(26,-64,34,-84);
+    ctx.quadraticCurveTo(12,-70,4,-55);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.restore(); // fin brazo + bambú
+
+    // ---------------- PATAS DELANTERAS APOYADAS ----------------
+    elipseConVolumen(-26, 84, 19, 16, PANDA.negroClaro, PANDA.negroOscuro);
+    elipseConVolumen( 14, 90, 19, 16, PANDA.negroClaro, PANDA.negroOscuro);
+
+    ctx.restore(); // fin translate respirar
+    ctx.restore(); // fin scale
+  }
+
+  /* ------------------------------------------------------------------
+     5. MÁQUINA DE ESTADOS DE ANIMACIÓN
+  ------------------------------------------------------------------ */
+
+  let posXIzquierda, posXDerecha, posYSuelo;
+  let escalaPanda = 1;       // escala global del panda según tamaño de pantalla
+  let radioPandaAprox = 110; // semiancho aproximado del dibujo a escala 1 (incluye brazo+bambú)
+
+  function recalcularPosiciones(){
+    // El panda se dibuja más pequeño en pantallas estrechas (móvil) para que
+    // quepa entero junto con las palmeras, sin recortarse en los bordes.
+    escalaPanda = Math.max(0.42, Math.min(1, ANCHO / 820));
+
+    const semiPanda = radioPandaAprox * escalaPanda;
+    const margenSeguro = semiPanda + 18;
+
+    let izq = ANCHO * 0.27;
+    let der = ANCHO * 0.73;
+
+    // Si la pantalla es muy estrecha, forzamos márgenes mínimos para que
+    // el panda nunca quede pegado o cortado por el borde.
+    izq = Math.max(izq, margenSeguro);
+    der = Math.min(der, ANCHO - margenSeguro);
+
+    // En pantallas extremadamente estrechas, garantizamos separación mínima
+    // entre las dos posiciones para que el movimiento siga siendo visible.
+    const separacionMinima = semiPanda * 1.3;
+    if(der - izq < separacionMinima){
+      const centro = ANCHO / 2;
+      izq = centro - separacionMinima / 2;
+      der = centro + separacionMinima / 2;
+    }
+
+    posXIzquierda = izq;
+    posXDerecha   = der;
+    posYSuelo     = ALTO * (ALTO < 480 ? 0.86 : 0.80); // en landscape bajo, panda más abajo
+  }
+
+  const estado = {
+    lado: 'izquierda',        // 'izquierda' | 'derecha'
+    rodando: false,
+    x: 0,                     // se inicializa tras el primer ajustarTamano()
+    rotacion: 0,
+    progreso: 0,              // 0..1 del viaje al rodar
+    duracionRodar: 1100,      // ms
+    tiempoInicioRodar: 0,
+    xInicio: 0,
+    xFin: 0,
+    direccion: 1,
+    escala: 1,
+    parpadeoFactor: 0,
+    proximoParpadeo: 2000 + Math.random()*3000,
+    tiempo: 0
+  };
+
+  function easeInOutQuad(t){
+    return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+  }
+
+  function iniciarRodada(){
+    if(estado.rodando) return;
+    estado.rodando = true;
+    estado.progreso = 0;
+    estado.tiempoInicioRodar = performance.now();
+
+    if(estado.lado === 'izquierda'){
+      estado.xInicio = posXIzquierda;
+      estado.xFin = posXDerecha;
+      estado.direccion = 1;
+      estado.lado = 'derecha';
+    } else {
+      estado.xInicio = posXDerecha;
+      estado.xFin = posXIzquierda;
+      estado.direccion = -1;
+      estado.lado = 'izquierda';
+    }
+
+    pistaEl.style.opacity = '0';
+  }
+
+  function actualizarEstado(dt, ahora){
+    estado.tiempo += dt;
+
+    // parpadeo periódico independiente de la rodada
+    estado.proximoParpadeo -= dt;
+    if(estado.proximoParpadeo <= 0 && estado.parpadeoFactor === 0){
+      estado.parpadeoFactor = 0.001; // dispara el cierre de ojos
+    }
+    if(estado.parpadeoFactor > 0){
+      estado.parpadeoFactor += dt*0.02;
+      if(estado.parpadeoFactor >= 1){
+        estado.parpadeoFactor = 1;
+      }
+      if(estado.parpadeoFactor >= 1.6){
+        estado.parpadeoFactor = 0;
+        estado.proximoParpadeo = 2500 + Math.random()*3500;
+      }
+    }
+    // truco simple para que el parpadeo suba y baje (triangular)
+    let parpadeoVisual = estado.parpadeoFactor;
+    if(parpadeoVisual > 1) parpadeoVisual = 2 - parpadeoVisual;
+    if(parpadeoVisual < 0) parpadeoVisual = 0;
+
+    if(estado.rodando){
+      const transcurrido = ahora - estado.tiempoInicioRodar;
+      let t = Math.min(1, transcurrido / estado.duracionRodar);
+      const tSuave = easeInOutQuad(t);
+
+      estado.x = estado.xInicio + (estado.xFin - estado.xInicio) * tSuave;
+
+      // rotación: dos vueltas y media completas en la dirección del movimiento
+      estado.rotacion = estado.direccion * tSuave * Math.PI * 5;
+
+      // "achatado" tipo bola al rodar (escala X/Y oscilante)
+      estado.escala = 1; // se gestiona en el dibujo con squash separado
+
+      if(t >= 1){
+        estado.rodando = false;
+        estado.rotacion = 0;
+        estado.x = estado.xFin;
+        pistaEl.style.opacity = '1';
+      }
+    }
+
+    return parpadeoVisual;
+  }
+
+  /* ------------------------------------------------------------------
+     6. BUCLE PRINCIPAL
+  ------------------------------------------------------------------ */
+
+  let ultimoTiempo = null;
+
+  function bucle(ahora){
+    if(ultimoTiempo === null) ultimoTiempo = ahora;
+    const dt = Math.min(48, ahora - ultimoTiempo); // limitar saltos grandes
+    ultimoTiempo = ahora;
+
+    const parpadeoVisual = actualizarEstado(dt, ahora);
+
+    ctx.clearRect(0,0,ANCHO,ALTO);
+    dibujarFondo(ahora, dt);
+
+    // ----- DIBUJAR PANDA -----
+    ctx.save();
+    ctx.translate(estado.x, posYSuelo);
+
+    if(estado.rodando){
+      // squash & stretch sutil mientras rueda, da sensación de bola elástica
+      const t = Math.min(1, (ahora - estado.tiempoInicioRodar)/estado.duracionRodar);
+      const rebote = Math.sin(t*Math.PI*4) * 0.06;
+      ctx.rotate(estado.rotacion);
+      ctx.scale(1 - rebote, 1 + rebote);
+      // pequeño salto vertical para dar dinamismo
+      const salto = -Math.sin(t*Math.PI) * 26;
+      ctx.translate(0, salto);
+    }
+
+    dibujarPanda({
+      tiempo: ahora,
+      escala: escalaPanda,
+      parpadeoFactor: estado.rodando ? 1 : parpadeoVisual
+    });
+
+    ctx.restore();
+
+    // (las palmeras ya se dibujaron dentro de dibujarFondo, antes del panda,
+    // por eso nunca lo tapan)
+
+    requestAnimationFrame(bucle);
+  }
+
+  /* ------------------------------------------------------------------
+     7. INTERACCIÓN DE USUARIO
+  ------------------------------------------------------------------ */
+
+  function distancia(x1,y1,x2,y2){
+    return Math.hypot(x1-x2, y1-y2);
+  }
+
+  function manejarClick(evX, evY){
+    const rect = lienzo.getBoundingClientRect();
+    const x = evX - rect.left;
+    const y = evY - rect.top;
+
+    // radio de click generoso alrededor del centro del panda
+    const radioClick = radioPandaAprox * escalaPanda + 60;
+    if(distancia(x, y, estado.x, posYSuelo - 20) <= radioClick){
+      iniciarRodada();
+    }
+  }
+
+  lienzo.addEventListener('click', (e)=>{
+    manejarClick(e.clientX, e.clientY);
+  });
+
+  lienzo.addEventListener('touchstart', (e)=>{
+    if(e.touches && e.touches[0]){
+      manejarClick(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, {passive:true});
+
+  /* ------------------------------------------------------------------
+     INICIALIZACIÓN
+  ------------------------------------------------------------------ */
+
+  function manejarCambioTamano(){
+    const eraIzquierda = estado.lado === 'izquierda' && !estado.rodando;
+    ajustarTamano();
+    generarFondoEstatico();
+    estado.x = eraIzquierda ? posXIzquierda : posXDerecha;
+  }
+
+  window.addEventListener('resize', manejarCambioTamano);
+  window.addEventListener('orientationchange', manejarCambioTamano);
+
+  // En móvil, la barra de direcciones del navegador puede aparecer/ocultarse
+  // después de la primera carga, cambiando la altura real visible sin
+  // disparar siempre el evento "resize" del window. Usamos visualViewport
+  // (si está disponible) para detectar ese caso y evitar que quede un
+  // hueco sin cubrir en la parte baja de la pantalla.
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', manejarCambioTamano);
+  }
+
+  ajustarTamano();
+  generarFondoEstatico();
+  estado.x = posXIzquierda;
+
+  // Reintento de seguridad: algunos navegadores móviles terminan de
+  // asentar la altura real del viewport unos instantes después de cargar.
+  setTimeout(manejarCambioTamano, 300);
+  setTimeout(manejarCambioTamano, 1000);
+
+  requestAnimationFrame(bucle);
+
+})();
+</script>
+</body>
+</html>
